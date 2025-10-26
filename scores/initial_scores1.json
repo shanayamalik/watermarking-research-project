@@ -1,0 +1,17 @@
+{
+  "image_quality": {
+    "fid": 352.38916774077705,
+    "clip": 30.8003,
+    "IS": 0.0
+  },
+  "detectability": {
+    "binary_classifier": 0.0
+  },
+  "perceptual_variability": {
+    "lpips": 0.0
+  },
+  "robustness": {
+    "cropping": 0.0,
+    "rescaling": 0.0
+  }
+}

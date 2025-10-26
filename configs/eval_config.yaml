@@ -1,25 +1,27 @@
 # Watermarking Evaluation Configuration
 base_config:
-  dir1: "path/to/watermarked_images" # Watermarked images
-  dir2: "path/to/ground_truth" # Ground truth images if needed (i.e. for fid)
-  output_file: "path/to/output_file.json" # Output file for the evaluation results
+  dir1: "outputs/sd2.1/" # Watermarked images
+  dir2: "coco2017/ground_truth" # Ground truth images if needed (i.e. for fid)
+  prompts_file: "outputs/sd2.1/prompts.json" # Prompts file generated during image generation (for CLIP score)
+  output_file: "scores/initial_scores1.json" # Output file for the evaluation results
 
 # Comment out the evaluation modes that you don't want to run
 evaluation_modes:
   # Image Quality Tests
-  - image_quality:
-    - "fid"
-    - "clip"
-    - "IS" # Inception Score
+  image_quality:
+    - "fid" # lower better
+    - "clip" # higher better
+    - "IS" # Inception Score, higher better
 
   # Detectability Tests  
-  - detectability:
+  detectability:
     - "binary_classifier"
 
-  - perceptual_variability:
+  # Perceptual Variability Tests
+  perceptual_variability:
     - "lpips"
 
   # Robustness Tests
-  - robustness:
+  robustness:
     - "cropping"
     - "rescaling"

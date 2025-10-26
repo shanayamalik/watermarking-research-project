@@ -20,13 +20,21 @@ def main(args):
     # Generate images
     os.makedirs(args.output_dir, exist_ok=True)
     
+    prompts_dict = {}
     for i in range(args.start, min(args.end, len(captions))):
         caption_data = captions[i]
         caption = caption_data['caption']
         image_id = caption_data['image_id']
         image = pipe(caption, num_inference_steps=50).images[0]
         image.save(f"{args.output_dir}/{image_id:012d}.png")
+        prompts_dict[f"{image_id:012d}.png"] = caption
         print(f"Generated {image_id:012d}: {caption}")
+    
+    # Save prompts to file
+    prompts_file = os.path.join(args.output_dir, "prompts.json")
+    with open(prompts_file, 'w') as f:
+        json.dump(prompts_dict, f, indent=2)
+    print(f"Saved prompts to {prompts_file}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

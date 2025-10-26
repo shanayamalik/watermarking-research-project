@@ -13,11 +13,12 @@ def main(config_path):
     results = {}
     
     # Run each evaluation mode
-    for mode in config["evaluation_modes"]:
-        for metric in mode:
-            print(f"Running {mode}/{metric}...")
+    for mode_name, metrics in config["evaluation_modes"].items():
+        results[mode_name] = {}
+        for metric in metrics:
+            print(f"Running {mode_name}/{metric}...")
             score = run_metric(metric, base_config)
-            results[mode][metric] = score
+            results[mode_name][metric] = score
             print(f"  {metric}: {score}")
     
     # Save results
