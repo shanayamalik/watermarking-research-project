@@ -1,4 +1,7 @@
 Steps:
+Download:
+pip install clean-fid
+
 1. Download 5000 Coco2017 subset: https://drive.google.com/drive/folders/1saWx-B3vJxzspJ-LaXSEn5Qjm8NIs3r0?usp=sharing
 And put ground truth and meta_data.json in a folder
 
