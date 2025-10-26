@@ -15,6 +15,9 @@ import copy
 
 NoneType = type(None)
 
+# NOTE: this is currently very close to how https://github.com/YuxinWenRick/tree-ring-watermark is done,
+# but I will diverge from their implementation since a lot of things are deprecated
+
 class WatermarkStableDiffusion(StableDiffusionPipeline):
     def __init__(self,
                  vae: AutoencoderKL,
