@@ -17,20 +17,20 @@ base_config:
 # Comment out the evaluation modes that you don't want to run
 evaluation_modes:
   # Image Quality Tests
-  # - image_quality:
+  # image_quality:
   #   - "fid"
   #   - "clip"
   #   - "IS" # Inception Score
 
   # Detectability Tests  
-  # - detectability:
+  # detectability:
   #   - "binary_classifier"
 
-  # - perceptual_variability:
+  # perceptual_variability:
   #   - "lpips"
 
   # Robustness Tests
-  - robustness:
+  robustness:
     - "compression"        # LSB watermark compression test
     - "fourier_compression" # Fourier watermark compression test
     # - "cropping"

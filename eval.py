@@ -1,3 +1,4 @@
+from cleanfid import fid
 import argparse
 import os
 import json
