@@ -1,0 +1,37 @@
+# Watermarking Evaluation Configuration
+base_config:
+  # LSB Watermarking specific config
+  watermarked_image: "results/mandrill_watermarked_lsb.png"
+  original_message: "This is a secret watermark embedded using LSB technique!"
+  
+  # Fourier Watermarking specific config
+  original_image: "images/4.2.03.tiff"
+  fourier_watermarked_image: "results/mandrill_watermarked_fourier.png"
+  
+  # General config
+  compression_quality: 50
+  dir1: "path/to/watermarked_images" # Watermarked images
+  dir2: "path/to/ground_truth" # Ground truth images if needed (i.e. for fid)
+  output_file: "results/evaluation_results.json" # Output file for the evaluation results
+
+# Comment out the evaluation modes that you don't want to run
+evaluation_modes:
+  # Image Quality Tests
+  # - image_quality:
+  #   - "fid"
+  #   - "clip"
+  #   - "IS" # Inception Score
+
+  # Detectability Tests  
+  # - detectability:
+  #   - "binary_classifier"
+
+  # - perceptual_variability:
+  #   - "lpips"
+
+  # Robustness Tests
+  - robustness:
+    - "compression"        # LSB watermark compression test
+    - "fourier_compression" # Fourier watermark compression test
+    # - "cropping"
+    # - "rescaling"

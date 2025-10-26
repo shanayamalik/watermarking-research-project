@@ -100,6 +100,24 @@ class LSBWatermarking:
                 break
         
         return self.binary_to_text(binary_message)
+    
+    def calculate_confidence_score(self, watermarked_image_path, original_message):
+        """Calculate confidence score for LSB extraction (0.0 to 1.0)."""
+        try:
+            extracted = self.extract_watermark(watermarked_image_path)
+            if extracted == original_message:
+                return 1.0  # Perfect match
+            elif extracted:
+                # Calculate similarity based on character match ratio
+                min_len = min(len(extracted), len(original_message))
+                if min_len == 0:
+                    return 0.0
+                matches = sum(1 for i in range(min_len) if extracted[i] == original_message[i])
+                return matches / len(original_message)
+            else:
+                return 0.0  # No extraction possible
+        except:
+            return 0.0
 
 
 def load_test_image(image_path):
@@ -143,9 +161,11 @@ if __name__ == "__main__":
             print(f"Extracted message: '{extracted}'")
             
             if extracted == message:
-                print("LSB watermarking successful.")
+                print("LSB watermarking successful!")
+                print(f"Confidence: 1.000 (perfect match)")
             else:
-                print("LSB watermarking unsuccessful.")
+                print("LSB watermarking failed!")
+                print(f"Confidence: 0.000 (no match)")
                 
         except Exception as e:
             print(f"Error: {e}")

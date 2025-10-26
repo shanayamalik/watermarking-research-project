@@ -1,0 +1,6 @@
+{
+  "robustness": {
+    "compression": 0.0,
+    "fourier_compression": 1.0
+  }
+}
