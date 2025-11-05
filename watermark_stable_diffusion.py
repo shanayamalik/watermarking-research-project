@@ -111,7 +111,12 @@ class WatermarkStableDiffusion(StableDiffusionPipeline):
         
         self.forward_sample = partial(get_prev_sample, scheduler=scheduler, inverse = True)
         self.backward_sample = partial(get_prev_sample, scheduler=scheduler, inverse = False)
-                        
+        self.cached_latents = None
+
+    @torch.inference_mode()
+    def get_last_latent(self):
+        return self.cached_latents
+
     @torch.inference_mode()
     def get_text_embedding(self, prompt):
         text_input_ids = self.tokenizer(
@@ -323,6 +328,8 @@ class WatermarkStableDiffusion(StableDiffusionPipeline):
                 # Update progress bar
                 if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
                     progress_bar.update()
+
+        self.cached_latents = latents
 
         if not output_type == "latent":
             image = self.vae.decode(latents / self.vae.config.scaling_factor, return_dict=False, generator=generator)[
