@@ -34,13 +34,13 @@ def generate_watermark_mask(latents: torch.Tensor, p = 0.7, w = 2) -> torch.Tens
     return watermark_mask
 
 # Callback is called right before each denoising step
-def gen_callback_watermark(target_watermark_iter, init_noise_callback=None, watermarked_noise_callback=None):
+def gen_callback_watermark(target_watermark_iter, eps=1e-9, init_noise_callback=None, watermarked_noise_callback=None):
     def callback_watermark(pipe: WatermarkStableDiffusion, iter: int, t: int, tensor_inputs: Dict) -> Dict:
         if iter == target_watermark_iter:
             latents = tensor_inputs['latents']
             watermark_mask = generate_watermark_mask(latents)
             fft_latents = torch.fft.fftshift(torch.fft.fft2(latents))
-            fft_latents[:,0][watermark_mask[:,0]] = 1e-9 # Embed only in first latent
+            fft_latents[:,0][watermark_mask[:,0]] = eps # Embed only in first latent
             
             # Save noise visual
             if init_noise_callback is not None:
@@ -57,6 +57,17 @@ def gen_callback_watermark(target_watermark_iter, init_noise_callback=None, wate
             return {"latents" : latents}
         return {}
     return callback_watermark
+
+def calc_watermark_dist(latent, eps):
+    target_latent = latent[0, 0]
+    mask = generate_watermark_mask(torch.tensor(latent))[0, 0].numpy() # I know it is bad to convert back and forth between numpy and torch but I'm sorry, it just wasn't worth the fuss
+    distances = np.zeros_like(target_latent)
+    distances[mask] = np.abs(target_latent - eps)[mask]
+    num_masked = np.sum(mask)
+    dist = np.sum(distances).astype(float) / num_masked
+    dist = np.round(dist, 3)
+    print(f"Distance: {dist}")
+    return dist
 
 def transform_image(image, target_size=512):
     """resize and output -1..1"""

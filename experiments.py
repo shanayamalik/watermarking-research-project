@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 from watermark_stable_diffusion import WatermarkStableDiffusion
-from utils import gen_callback_watermark, transform_image, save_numpy_to_image
+from utils import gen_callback_watermark, transform_image, save_numpy_to_image, calc_watermark_dist
 
 def variable_latent_exp():
     seed = 229
@@ -17,7 +17,10 @@ def variable_latent_exp():
 
     prompt = "Claude Shannon holding a red balloon"
     print(f"Using prompt: '{prompt}'")
-    num_inference_steps = 20
+    eps=1e-9
+    num_inference_steps = 100
+    injection_stride = 20
+    assert num_inference_steps % injection_stride == 0
 
     print("Generating clean sample image")
 
@@ -28,7 +31,7 @@ def variable_latent_exp():
     torch.manual_seed(seed)
     image_clean = pipe(prompt,
                 output_type='pil', 
-                num_inference_steps=20).images[0] # type:ignore
+                num_inference_steps=num_inference_steps).images[0] # type:ignore
     exp_image_gens.append(image_clean)
     # Reverse the noise conditioned on an EMPTY prompt
     print("Reversing image to predicted noise")
@@ -47,9 +50,10 @@ def variable_latent_exp():
     fft_numpy = fft_latents.detach().cpu().numpy()
     data = np.log(abs(fft_numpy[0,0]))
     exp_rev_noise_latents.append(data)
+
+    dist = calc_watermark_dist(fft_numpy, eps)
+    distances = [dist]
     
-    injection_stride = 5
-    assert num_inference_steps % injection_stride == 0
     for target_watermark_iter in range(0, num_inference_steps, injection_stride):
         torch.manual_seed(seed)
         print(f"[Target Iteration: {target_watermark_iter}]")
@@ -57,7 +61,7 @@ def variable_latent_exp():
         image = pipe(prompt,
                     output_type='pil', 
                     num_inference_steps=num_inference_steps,
-                    callback_on_step_end=gen_callback_watermark(target_watermark_iter, watermarked_noise_callback=watermarked_noise_callback),
+                    callback_on_step_end=gen_callback_watermark(target_watermark_iter, eps=eps, watermarked_noise_callback=watermarked_noise_callback),
                     callback_on_step_end_tensor_inputs=['latents']).images[0]
         img_array = np.array(image)
         exp_image_gens.append(img_array)
@@ -74,11 +78,16 @@ def variable_latent_exp():
                     output_type='pil',
                     guidance_scale=1,
                     num_inference_steps=num_inference_steps,
-                    forward_process=True).images[0]
+                    forward_process=True,
+                    stop_iter=num_inference_steps-target_watermark_iter).images[0] # Reverse up to the point when the watermark was injected
         noise_latents = pipe.get_last_latent()
         fft_latents = torch.fft.fftshift(torch.fft.fft2(noise_latents))
         fft_numpy = fft_latents.detach().cpu().numpy()
-        data = np.log(abs(fft_numpy[0,0]))
+
+        dist = calc_watermark_dist(fft_numpy, eps)
+        distances.append(dist)
+
+        data = np.log(np.abs(fft_numpy[0,0]))
         exp_rev_noise_latents.append(data)
 
     fig, ax = plt.subplots(2,len(exp_image_gens),figsize=(5 * len(exp_image_gens), 10))
@@ -93,7 +102,8 @@ def variable_latent_exp():
         ax[0, i].imshow(exp_image_gens[i])
         ax[1, i].imshow(exp_rev_noise_latents[i], norm=norm, cmap='viridis')
 
-        if i > 0: ax[0, i].set_title(f"Embedded Latent {(i - 1) * injection_stride}")
+        if i > 0: ax[0, i].set_title(f"Injected Latent: {(i - 1) * injection_stride}")
+        ax[1, i].set_title(f"Distance: {distances[i]}")
 
     ax[0, 0].set_title("Clean Latents")
     ax[0, 0].set_ylabel("Image Sample")
@@ -104,6 +114,7 @@ def variable_latent_exp():
 def initial_latent_exp():
     seed = 229
     torch.manual_seed(seed)
+    eps=1e-9
 
     print("Loading Stable Diffusion 1.5")
     model_id = "runwayml/stable-diffusion-v1-5"
@@ -119,7 +130,7 @@ def initial_latent_exp():
     image = pipe(prompt,
                 output_type='pil', 
                 num_inference_steps=num_inference_steps,
-                callback_on_step_end=gen_callback_watermark(target_watermark_iter, init_noise_callback=init_noise_callback, watermarked_noise_callback=watermarked_noise_callback),
+                callback_on_step_end=gen_callback_watermark(target_watermark_iter, eps=eps, init_noise_callback=init_noise_callback, watermarked_noise_callback=watermarked_noise_callback),
                 callback_on_step_end_tensor_inputs=['latents']).images[0]
     img_array = np.array(image)
 
