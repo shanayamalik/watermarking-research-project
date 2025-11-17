@@ -34,7 +34,7 @@ def generate_watermark_mask(latents: torch.Tensor, p = 0.7, w = 2) -> torch.Tens
     return watermark_mask
 
 # Callback is called right before each denoising step
-def gen_callback_watermark(target_watermark_iter):
+def gen_callback_watermark(target_watermark_iter, init_noise_callback=None, watermarked_noise_callback=None):
     def callback_watermark(pipe: WatermarkStableDiffusion, iter: int, t: int, tensor_inputs: Dict) -> Dict:
         if iter == target_watermark_iter:
             latents = tensor_inputs['latents']
@@ -43,15 +43,17 @@ def gen_callback_watermark(target_watermark_iter):
             fft_latents[:,0][watermark_mask[:,0]] = 1e-9 # Embed only in first latent
             
             # Save noise visual
-            fft_numpy = fft_latents.detach().cpu().numpy()
-            data = np.log(abs(fft_numpy[0,0]))
-            save_numpy_to_image(latents[0,0].detach().cpu().numpy(), "initial_noise.png")
-            save_numpy_to_image(data, "watermarked_noise.png")
+            if init_noise_callback is not None:
+                init_noise_callback.append(latents[0,0].detach().cpu().numpy())
+            if watermarked_noise_callback is not None: 
+                fft_numpy = fft_latents.detach().cpu().numpy()
+                data = np.log(abs(fft_numpy[0,0]))
+                watermarked_noise_callback.append(data)
 
             # Inverse fourier tranform of watermarked latents
             latents = torch.fft.ifft2(torch.fft.ifftshift(fft_latents)).type(latents.dtype)
 
-            print("Embedded watermark in initial latent")
+            print(f"Embedded watermark in latent {iter}")
             return {"latents" : latents}
         return {}
     return callback_watermark

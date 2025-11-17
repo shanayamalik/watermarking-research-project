@@ -164,6 +164,7 @@ class WatermarkStableDiffusion(StableDiffusionPipeline):
         clip_skip: Optional[int] = None,
         callback_on_step_end: Union[Callable[[int, int, Dict], NoneType], PipelineCallback, MultiPipelineCallbacks, NoneType] = None, # type:ignore
         callback_on_step_end_tensor_inputs: List[str] = ['latents'],
+        stop_iter: Optional[int] = None,
         **kwargs):
     
         # Reworked code from: https://github.com/huggingface/diffusers/blob/main/src/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion.py
@@ -287,7 +288,10 @@ class WatermarkStableDiffusion(StableDiffusionPipeline):
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         self._num_timesteps = len(timesteps)
         with self.progress_bar(total=num_inference_steps) as progress_bar: # type: ignore
-            for i, t in enumerate(timesteps if not forward_process else reversed(timesteps)):
+            target_timesteps = timesteps if not forward_process else reversed(timesteps)
+            if stop_iter is not None:
+                target_timesteps = target_timesteps[:stop_iter+1] # type: ignore
+            for i, t in enumerate(target_timesteps):
                 if self.interrupt:
                     continue
 
