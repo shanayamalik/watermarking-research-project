@@ -1,0 +1,79 @@
+import torch
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+
+from watermark_stable_diffusion import WatermarkStableDiffusion
+from utils import gen_callback_watermark, transform_image, save_numpy_to_image
+
+def initial_latent_exp():
+    seed = 229
+    torch.manual_seed(seed)
+
+    print("Loading Stable Diffusion 1.5")
+    model_id = "runwayml/stable-diffusion-v1-5"
+    pipe = WatermarkStableDiffusion.from_pretrained(model_id) 
+    pipe = pipe.to("cuda")
+
+    prompt = "Claude Shannon holding a red balloon"
+    print(f"Generating watermarked sample image: '{prompt}'")
+    target_watermark_iter = 0
+    num_inference_steps = 20
+    image = pipe(prompt,
+                output_type='pil', 
+                num_inference_steps=num_inference_steps,
+                callback_on_step_end=gen_callback_watermark(target_watermark_iter),
+                callback_on_step_end_tensor_inputs=['latents']).images[0]
+    img_array = np.array(image)
+
+    # Reverse the noise conditioned on an EMPTY prompt
+    print("Reversing image to predicted noise")
+    image_tensor = transform_image(image).unsqueeze(0).cuda()
+    image_gen_latents = pipe.get_image_latents(image=image_tensor, sample=False)
+    tester_prompt = ''
+    text_embeddings = pipe.get_text_embedding(tester_prompt)
+    image_noise = pipe(latents=image_gen_latents,
+                prompt_embeds=text_embeddings,
+                output_type='pil', 
+                guidance_scale=1,
+                num_inference_steps=50,
+                forward_process=True).images[0]
+    noise_latents = pipe.get_last_latent()
+    fft_latents = torch.fft.fftshift(torch.fft.fft2(noise_latents))
+    fft_numpy = fft_latents.detach().cpu().numpy()
+    data = np.log(abs(fft_numpy[0,0]))
+    save_numpy_to_image(data, "results/reverse_watermarked_noise.png")
+
+    print("Regenerating image with reversed noise")
+    noise_latents = pipe.get_last_latent()
+    image_noise_rev = pipe(prompt,
+                latents=noise_latents,
+                output_type='pil', 
+                guidance_scale=1,
+                num_inference_steps=20).images[0]
+
+    print("Generating clean sample image")
+    torch.manual_seed(seed)
+    image_clean = pipe(prompt,
+                output_type='pil', 
+                num_inference_steps=20).images[0] # type:ignore
+
+    print("Saving final plot")
+    initial_noise = np.asarray(Image.open("results/initial_noise.png"))
+    watermarked_noise = np.asarray(Image.open("results/watermarked_noise.png"))
+    reverse_watermarked_noise = np.asarray(Image.open("results/reverse_watermarked_noise.png"))
+
+    fig, ax = plt.subplots(2,3,figsize=(15, 10))
+
+    ax[0, 0].imshow(image_clean)
+    ax[0, 0].set_title("Initial Noise")
+    ax[0, 1].imshow(img_array)
+    ax[0, 1].set_title("Watermarked Noise")
+    ax[0, 2].imshow(image_noise_rev)
+    ax[0, 2].set_title("Inverse Noise Prediction")
+
+    ax[1, 0].imshow(initial_noise)
+    ax[1, 1].imshow(watermarked_noise)
+    ax[1, 2].imshow(reverse_watermarked_noise)
+
+    plt.savefig("results/treerings.png")
