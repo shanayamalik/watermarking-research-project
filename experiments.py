@@ -52,6 +52,7 @@ def variable_latent_exp():
     exp_rev_noise_latents.append(data)
 
     dist = calc_watermark_dist(fft_numpy, eps)
+    print(f"Distance: {dist}")
     distances = [dist]
     
     for target_watermark_iter in range(0, num_inference_steps, injection_stride):
@@ -85,12 +86,13 @@ def variable_latent_exp():
         fft_numpy = fft_latents.detach().cpu().numpy()
 
         dist = calc_watermark_dist(fft_numpy, eps)
+        print(f"Distance: {dist}")
         distances.append(dist)
 
         data = np.log(np.abs(fft_numpy[0,0]))
         exp_rev_noise_latents.append(data)
 
-    fig, ax = plt.subplots(2,len(exp_image_gens),figsize=(5 * len(exp_image_gens), 10))
+    fig, ax = plt.subplots(2,len(exp_image_gens), figsize=(5 * len(exp_image_gens), 10))
 
     all_latents = exp_rev_noise_latents
     vmin = min(img.min() for img in all_latents)

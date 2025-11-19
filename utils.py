@@ -66,7 +66,6 @@ def calc_watermark_dist(latent, eps):
     num_masked = np.sum(mask)
     dist = np.sum(distances).astype(float) / num_masked
     dist = np.round(dist, 3)
-    print(f"Distance: {dist}")
     return dist
 
 def transform_image(image, target_size=512):
