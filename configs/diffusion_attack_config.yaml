@@ -1,0 +1,135 @@
+# Configuration for attacking diffusion-watermarked images
+# These watermarks are embedded DURING reverse diffusion (shai's methods)
+
+diffusion_attack_suites:
+  treering_attack_suite:
+    watermark_method: "treering"
+    watermarked_image: "results/diffusion_watermarked/treering_sample.png"
+    original_image: "results/diffusion_watermarked/clean_sample.png"  # For imperceptibility comparison
+    output_dir: "results/diffusion_attacks/treering"
+    results_file: "results/diffusion_attacks/treering_results.json"
+    
+    # Diffusion model settings
+    model_id: "runwayml/stable-diffusion-v1-5"
+    num_inference_steps: 50
+    device: "cuda"
+    
+    # Tree-Ring specific
+    treering_eps: 1.0e-9
+    
+    # Attack list
+    attacks:
+      - type: "compression"
+        name: "jpeg_q80"
+        quality: 80
+      - type: "compression"
+        name: "jpeg_q50"
+        quality: 50
+      - type: "compression"
+        name: "jpeg_q30"
+        quality: 30
+      - type: "rescaling"
+        name: "rescale_75pct"
+        scale: 0.75
+      - type: "rescaling"
+        name: "rescale_50pct"
+        scale: 0.50
+      - type: "cropping"
+        name: "crop_center_85pct"
+        crop_fraction: 0.85
+      - type: "cropping"
+        name: "crop_center_70pct"
+        crop_fraction: 0.70
+      - type: "gaussian_noise"
+        name: "noise_sigma_5"
+        sigma: 5.0
+      - type: "gaussian_noise"
+        name: "noise_sigma_10"
+        sigma: 10.0
+      - type: "gaussian_blur"
+        name: "blur_5"
+        ksize: 5
+      - type: "gaussian_blur"
+        name: "blur_7"
+        ksize: 7
+      - type: "rotation"
+        name: "rotate_5deg"
+        angle: 5
+      - type: "rotation"
+        name: "rotate_15deg"
+        angle: 15
+
+  prc_attack_suite:
+    watermark_method: "prc"
+    watermarked_image: "results/diffusion_watermarked/prc_sample.png"
+    original_image: "results/diffusion_watermarked/clean_sample.png"
+    output_dir: "results/diffusion_attacks/prc"
+    results_file: "results/diffusion_attacks/prc_results.json"
+    
+    # Diffusion model settings
+    model_id: "runwayml/stable-diffusion-v1-5"
+    num_inference_steps: 50
+    device: "cuda"
+    
+    # PRC specific
+    prc_key_path: "keys/prc_fpr_1e-05_nowm_0.pkl"
+    
+    # Attack list (same as tree-ring)
+    attacks:
+      - type: "compression"
+        name: "jpeg_q80"
+        quality: 80
+      - type: "compression"
+        name: "jpeg_q50"
+        quality: 50
+      - type: "compression"
+        name: "jpeg_q30"
+        quality: 30
+      - type: "rescaling"
+        name: "rescale_75pct"
+        scale: 0.75
+      - type: "rescaling"
+        name: "rescale_50pct"
+        scale: 0.50
+      - type: "cropping"
+        name: "crop_center_85pct"
+        crop_fraction: 0.85
+      - type: "cropping"
+        name: "crop_center_70pct"
+        crop_fraction: 0.70
+      - type: "gaussian_noise"
+        name: "noise_sigma_5"
+        sigma: 5.0
+      - type: "gaussian_noise"
+        name: "noise_sigma_10"
+        sigma: 10.0
+      - type: "gaussian_blur"
+        name: "blur_5"
+        ksize: 5
+      - type: "gaussian_blur"
+        name: "blur_7"
+        ksize: 7
+      - type: "rotation"
+        name: "rotate_5deg"
+        angle: 5
+
+  # Quick test suite (fewer attacks for faster testing)
+  treering_quick_suite:
+    watermark_method: "treering"
+    watermarked_image: "results/diffusion_watermarked/treering_sample.png"
+    output_dir: "results/diffusion_attacks/treering_quick"
+    results_file: "results/diffusion_attacks/treering_quick_results.json"
+    model_id: "runwayml/stable-diffusion-v1-5"
+    num_inference_steps: 50
+    device: "cuda"
+    treering_eps: 1.0e-9
+    attacks:
+      - type: "compression"
+        name: "jpeg_q80"
+        quality: 80
+      - type: "rescaling"
+        name: "rescale_75pct"
+        scale: 0.75
+      - type: "gaussian_noise"
+        name: "noise_sigma_5"
+        sigma: 5.0
