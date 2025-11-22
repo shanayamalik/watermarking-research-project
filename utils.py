@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import torch
 from watermark_stable_diffusion import WatermarkStableDiffusion
 import numpy as np
+import random
 
 def save_numpy_to_image(data, name):
     dpi = 100
@@ -33,8 +34,8 @@ def generate_watermark_mask(latents: torch.Tensor, p = 0.7, w = 2) -> torch.Tens
     watermark_mask = watermark_mask.repeat(latents.shape[0], latents.shape[1], 1, 1)
     return watermark_mask
 
-# Callback is called right before each denoising step
-def gen_callback_watermark(target_watermark_iter, eps=1e-9, init_noise_callback=None, watermarked_noise_callback=None):
+# Callback is called right before a corresponding denoising step
+def gen_callback_watermark_tr(target_watermark_iter, eps=1e-9, init_noise_callback=None, watermarked_noise_callback=None):
     def callback_watermark(pipe: WatermarkStableDiffusion, iter: int, t: int, tensor_inputs: Dict) -> Dict:
         if iter == target_watermark_iter:
             latents = tensor_inputs['latents']
@@ -52,6 +53,42 @@ def gen_callback_watermark(target_watermark_iter, eps=1e-9, init_noise_callback=
 
             # Inverse fourier tranform of watermarked latents
             latents = torch.fft.ifft2(torch.fft.ifftshift(fft_latents)).type(latents.dtype)
+
+            print(f"Embedded watermark in latent {iter}")
+            return {"latents" : latents}
+        return {}
+    return callback_watermark
+
+def gen_callback_watermark_prcf(target_watermark_iter, codeword, init_noise_callback=None, watermarked_noise_callback=None):
+    def callback_watermark(pipe: WatermarkStableDiffusion, iter: int, t: int, tensor_inputs: Dict) -> Dict:
+        if iter == target_watermark_iter:
+            latents = tensor_inputs['latents']
+            fft_latents = torch.fft.fftshift(torch.fft.fft2(latents))
+            real, imaginary = fft_latents.real, fft_latents.imag
+            real = codeword * torch.abs(real)
+            watermarked_latents = torch.complex(real, imaginary)
+
+            watermark_mask = torch.zeros_like(latents, dtype=torch.long)
+            n_rows, n_cols = latents.shape[2:4]
+            row_indices_c2 = (torch.arange(0, n_rows) - n_rows / 2) ** 2
+            col_indices_c2 = (torch.arange(0, n_cols) - n_cols / 2) ** 2
+            dist_grid = row_indices_c2.view(-1, 1) + col_indices_c2.view(1, -1) # Shape: (n_rows, n_cols)
+            p = 0.7
+            w = 2
+            r = p * n_rows / 2
+            watermark_mask = (dist_grid >= r ** 2) * (dist_grid <= (r + w) ** 2)
+            watermark_mask = watermark_mask.repeat(latents.shape[0], latents.shape[1], 1, 1)
+            masked_watermark_latents = fft_latents.clone()
+            masked_watermark_latents[watermark_mask] = watermarked_latents[watermark_mask]
+            masked_watermark_latents = torch.fft.ifft2(torch.fft.ifftshift(masked_watermark_latents)).type(latents.dtype)
+
+            # Save noise visual
+            if init_noise_callback is not None:
+                init_noise_callback.append(latents[0,0].detach().cpu().numpy())
+            if watermarked_noise_callback is not None: 
+                watermarked_noise_callback.append(masked_watermark_latents[0,0].detach().cpu().numpy())
+            
+            latents = masked_watermark_latents
 
             print(f"Embedded watermark in latent {iter}")
             return {"latents" : latents}
@@ -79,3 +116,10 @@ def transform_image(image, target_size=512):
     )
     image = tform(image)
     return 2.0 * image - 1.0
+
+def seed_everything(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    return seed

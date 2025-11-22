@@ -3,9 +3,76 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import PowerNorm
 import numpy as np
 from PIL import Image
+import os
+import pickle 
+from prc import KeyGen, Encode, str_to_bin, bin_to_str
+import pseudogaussians as prc_gaussians
 
 from watermark_stable_diffusion import WatermarkStableDiffusion
-from utils import gen_callback_watermark, transform_image, save_numpy_to_image, calc_watermark_dist
+from utils import gen_callback_watermark_tr, gen_callback_watermark_prcf, transform_image, save_numpy_to_image, calc_watermark_dist, seed_everything
+
+# Key code comes from PRC paper
+def latent_prc_exp():
+    seed = 229
+    seed_everything(seed)
+    
+    exp_id = "prc_fpr_1e-05_nowm_0"
+    n = 4 * 64 * 64  # the length of a PRC codeword
+    fpr = 0.00001
+    prc_t = 3
+    if not os.path.exists(f'keys/{exp_id}.pkl'):  # Generate watermark key for the first time and save it to a file
+        (encoding_key_ori, decoding_key_ori) = KeyGen(n, false_positive_rate=fpr, t=prc_t, seed=seed)  # Sample PRC keys
+        with open(f'keys/{exp_id}.pkl', 'wb') as f:  # Save the keys to a file
+            pickle.dump((encoding_key_ori, decoding_key_ori), f)
+        with open(f'keys/{exp_id}.pkl', 'rb') as f:  # Load the keys from a file
+            encoding_key, decoding_key = pickle.load(f)
+        assert encoding_key[0].all() == encoding_key_ori[0].all()
+    else:  # Or we can just load the keys from a file
+        with open(f'keys/{exp_id}.pkl', 'rb') as f:
+            encoding_key, decoding_key = pickle.load(f)
+        print(f'Loaded PRC keys from file keys/{exp_id}.pkl')
+
+    print("Loading Stable Diffusion 1.5")
+    model_id = "runwayml/stable-diffusion-v1-5"
+    pipe = WatermarkStableDiffusion.from_pretrained(model_id) 
+    pipe = pipe.to("cuda")
+
+    prompt = "Claude Shannon holding a red balloon"
+    print(f"Using prompt: '{prompt}'")
+    num_inference_steps = 100
+
+    prc_codeword = Encode(encoding_key, seed=seed)
+
+    init_noise_callback = []
+    watermarked_noise_callback = []
+    target_watermark_iter = 0
+    image = pipe(prompt,
+                output_type='pil', 
+                num_inference_steps=num_inference_steps,
+                callback_on_step_end=gen_callback_watermark_prcf(target_watermark_iter, prc_codeword.reshape(1, 4, 64, 64).cuda(), init_noise_callback=init_noise_callback, watermarked_noise_callback=watermarked_noise_callback),
+                callback_on_step_end_tensor_inputs=['latents']).images[0]
+    img_array = np.array(image)
+
+    # init_latents = prc_gaussians.sample(prc_codeword).reshape(1, 4, 64, 64).to(torch.float).cuda()
+    A = init_noise_callback[-1]
+    B = watermarked_noise_callback[-1]
+
+    vmin = min(img.min() for img in [A, B])
+    vmax = max(img.max() for img in [A, B])
+    
+    norm = PowerNorm(gamma=0.5, vmin=vmin, vmax=vmax)
+
+    fig, ax = plt.subplots(1, 3, figsize=(10, 4))
+    im1 = ax[0].imshow(A, norm=norm, cmap='viridis')
+    ax[0].set_title("Initial Latent")
+
+    ax[1].imshow(A - B, norm=norm, cmap='viridis')
+    ax[1].set_title("Watermark Difference")
+    
+    ax[2].imshow(img_array)
+    ax[2].set_title("Generated Image")
+    
+    plt.savefig("testnoise_diff.png")
 
 def variable_latent_exp():
     seed = 229
@@ -28,7 +95,7 @@ def variable_latent_exp():
     exp_noise_latents = []
     exp_rev_noise_latents = []
 
-    torch.manual_seed(seed)
+    seed_everything(seed)
     image_clean = pipe(prompt,
                 output_type='pil', 
                 num_inference_steps=num_inference_steps).images[0] # type:ignore
@@ -56,13 +123,13 @@ def variable_latent_exp():
     distances = [dist]
     
     for target_watermark_iter in range(0, num_inference_steps, injection_stride):
-        torch.manual_seed(seed)
+        seed_everything(seed)
         print(f"[Target Iteration: {target_watermark_iter}]")
         watermarked_noise_callback = []
         image = pipe(prompt,
                     output_type='pil', 
                     num_inference_steps=num_inference_steps,
-                    callback_on_step_end=gen_callback_watermark(target_watermark_iter, eps=eps, watermarked_noise_callback=watermarked_noise_callback),
+                    callback_on_step_end=gen_callback_watermark_tr(target_watermark_iter, eps=eps, watermarked_noise_callback=watermarked_noise_callback),
                     callback_on_step_end_tensor_inputs=['latents']).images[0]
         img_array = np.array(image)
         exp_image_gens.append(img_array)
@@ -115,7 +182,7 @@ def variable_latent_exp():
 
 def initial_latent_exp():
     seed = 229
-    torch.manual_seed(seed)
+    seed_everything(seed)
     eps=1e-9
 
     print("Loading Stable Diffusion 1.5")
@@ -132,7 +199,7 @@ def initial_latent_exp():
     image = pipe(prompt,
                 output_type='pil', 
                 num_inference_steps=num_inference_steps,
-                callback_on_step_end=gen_callback_watermark(target_watermark_iter, eps=eps, init_noise_callback=init_noise_callback, watermarked_noise_callback=watermarked_noise_callback),
+                callback_on_step_end=gen_callback_watermark_tr(target_watermark_iter, eps=eps, init_noise_callback=init_noise_callback, watermarked_noise_callback=watermarked_noise_callback),
                 callback_on_step_end_tensor_inputs=['latents']).images[0]
     img_array = np.array(image)
 
@@ -166,7 +233,7 @@ def initial_latent_exp():
                 num_inference_steps=20).images[0]
 
     print("Generating clean sample image")
-    torch.manual_seed(seed)
+    seed_everything(seed)
     image_clean = pipe(prompt,
                 output_type='pil', 
                 num_inference_steps=20).images[0] # type:ignore
