@@ -1,0 +1,102 @@
+\documentclass[conference,letterpaper]{IEEEtran}
+\addtolength{\topmargin}{9mm}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{url}
+\usepackage{ifthen}
+\usepackage{cite}
+\usepackage[cmex10]{amsmath}
+\usepackage{graphicx}
+\interdisplaylinepenalty=2500
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\title{Evaluation of Spatial, Frequency, and Diffusion-Inspired Watermarking Under Common Image Attacks}
+
+\author{\IEEEauthorblockN{\textit{Author(s):} \underline{\hspace{6cm}}}\\
+\IEEEauthorblockA{\textit{Affiliation(s):} \underline{\hspace{6cm}}\\
+\textit{Contact:} \underline{\hspace{6cm}}}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report analyzes spatial-domain, frequency-domain, and Stable Diffusion-inspired watermarking techniques for digital images. We summarize implementation details, automated attack evaluations, and robustness measurements across JPEG compression, rescaling, cropping, Gaussian noise, and Gaussian blur. The study highlights resilience patterns among least significant bit (LSB), Fourier, discrete cosine transform (DCT), and ring-mask watermarks and distills lessons for future improvements and video-oriented extensions.
+\end{abstract}
+
+\section{Introduction}
+Image watermarking aims to embed imperceptible signals that can be reliably detected after typical content transformations. Building on classic spatial and frequency approaches, this project adds a DCT watermark and Stable Diffusion-inspired ring-mask while unifying evaluation through an automated attack runner. The goal is to quantify detectability and perceptual quality under common perturbations to guide future expansions into latent diffusion workflows and video scenarios.
+
+\section{Methods}
+\subsection{Watermarking Techniques}
+\textbf{LSB Watermarking}: Embeds payload bits into the least significant bits of pixel values with a CLI harness for self-testing.
+
+\textbf{Fourier Watermarking}: Injects a subtle pattern into the Fourier transform of the green channel, paired with a detector that scores confidence after inverse transformation.
+
+\textbf{DCT Watermarking}: Implements blockwise coefficient modification with configurable pairs, delimiter-based payload recovery, and confidence scoring, enabling robust embedding and extraction.
+
+\textbf{Stable Diffusion-Inspired Ring Mask}: Ports a latent ring-mask concept into image space, boosting a circular Fourier band on a Stable Diffusion 2.1 sample and evaluating it with the same attack runner.
+
+\subsection{Attack Evaluation Pipeline}
+An automated runner orchestrates configurable suites for each method. It prepares watermarked inputs, applies perturbations (JPEG compression, rescaling, center cropping, Gaussian noise, and Gaussian blur), computes detection confidence, and records PSNR/SSIM relative to pristine watermarked images.
+
+\subsection{Metrics}
+Detection confidence is reported on a unitless 0--1 scale. Perceptual quality uses Peak Signal-to-Noise Ratio (PSNR, dB) and Structural Similarity Index Measure (SSIM, 0--1). Summaries are derived from JSON logs produced by the attack runner and visualized via provided plotting scripts.
+
+\section{Results}
+\subsection{Confidence Across Attacks}
+Figure~\ref{fig:confidence} summarizes watermark detection confidence across JPEG compression, rescaling, cropping, Gaussian noise, and Gaussian blur for all four methods using the mandrill sample image. Fourier watermarking preserved confidence 1.00 for every attack, LSB held at 1.00 under compression only, DCT collapsed under geometric and blur perturbations, and the Stable Diffusion-inspired mask retained 0.99 under compression but failed on rescaling and blur.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.47\textwidth]{confidence_by_attack.png}
+  \caption{Bar chart showing watermark confidence across attacks for LSB, Fourier, DCT, and Stable Diffusion-inspired methods. The horizontal axis lists each attack (JPEG quality levels, rescaling, cropping, Gaussian noise, and Gaussian blur), and the vertical axis reports watermark confidence on a 0--1 unitless scale.}
+  \label{fig:confidence}
+\end{figure}
+
+\subsection{Image Fidelity for Each Method}
+Perceptual quality trends mirror the robustness differences. JPEG compression preserved PSNR \(\approx361\) dB and SSIM 1.00 for every method because the pristine watermarked image was used as reference. Rescaling and blur reduced PSNR/SSIM for Fourier and DCT, while the ring-mask watermark showed strong degradation under cropping despite moderate PSNR/SSIM after rescaling and blur.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.47\textwidth]{lsb_fidelity.png}
+  \caption{Line plot of PSNR/SSIM after attacks for LSB watermarking. The horizontal axis enumerates JPEG compression, rescaling, cropping, Gaussian noise, and Gaussian blur; the left vertical axis shows PSNR (Peak Signal-to-Noise Ratio, in decibels) and the right vertical axis shows SSIM (Structural Similarity Index Measure, unitless on a 0--1 scale).}
+  \label{fig:lsb}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.47\textwidth]{fourier_fidelity.png}
+  \caption{Line plot of PSNR/SSIM after attacks for Fourier watermarking. The horizontal axis lists the attacks; PSNR (Peak Signal-to-Noise Ratio, decibels) is plotted on the left vertical axis and SSIM (Structural Similarity Index Measure, 0--1 unitless) on the right vertical axis.}
+  \label{fig:fourier}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.47\textwidth]{dct_fidelity.png}
+  \caption{Line plot of PSNR/SSIM after attacks for DCT watermarking. The horizontal axis lists the attacks; PSNR (Peak Signal-to-Noise Ratio, decibels) is plotted on the left vertical axis and SSIM (Structural Similarity Index Measure, 0--1 unitless) on the right vertical axis.}
+  \label{fig:dct}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.47\textwidth]{stable_diffusion_fidelity.png}
+  \caption{Line plot of PSNR/SSIM after attacks for the Stable Diffusion-inspired watermark. Attacks align with the other full suites; PSNR (dB) and SSIM (0--1) are reported on dual axes.}
+  \label{fig:sd}
+\end{figure}
+
+\section{Discussion}
+\subsection{Method Comparisons and Insights}
+Fourier watermarking demonstrated the strongest robustness across perturbations, maintaining both detectability and reasonable perceptual quality. LSB watermarking excelled only for compression, reflecting its sensitivity to geometric and noise attacks. The DCT approach balanced imperceptibility with partial resilience but requires parameter tuning or enhanced detectors for spatial transformations. The Stable Diffusion-inspired ring mask provided promising compression resilience yet highlighted sensitivity to blur and resizing, suggesting future work on spatially adaptive masks or integration into latent pipelines.
+
+\subsection{Video Watermarking Considerations}
+Extending these methods to video introduces temporal coherence requirements and compound distortions from codecs and frame-level edits. Differences include repeated compression through inter-frame encoding, motion estimation artifacts, and frame drops that can desynchronize payload extraction. Challenges involve maintaining synchronization across frames, resisting bitrate-driven quantization, and handling color sub-sampling typical of video standards. Potential approaches include embedding redundant payloads across multiple frames, using motion-compensated embedding regions, leveraging keyframe alignment for robust extraction, and incorporating temporal perceptual models to balance invisibility with resilience.
+
+\section{Conclusion}
+The evaluation shows that Fourier watermarking currently offers the best robustness among tested methods, while DCT and diffusion-inspired designs need improvements for spatial perturbations. Future work will refine success criteria, integrate latent diffusion decoding into the attack pipeline, explore advanced perceptual metrics, and investigate video-specific embedding strategies.
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
