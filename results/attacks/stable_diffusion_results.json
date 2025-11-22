@@ -1,0 +1,68 @@
+[
+  {
+    "name": "jpeg_q80",
+    "attack_type": "compression",
+    "params": {
+      "quality": 80
+    },
+    "confidence": 0.9855768873595564,
+    "psnr": 361.20199909921956,
+    "ssim": 1.0,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/stable_diffusion/jpeg_q80.png"
+  },
+  {
+    "name": "jpeg_q30",
+    "attack_type": "compression",
+    "params": {
+      "quality": 30
+    },
+    "confidence": 0.9855768873595564,
+    "psnr": 361.20199909921956,
+    "ssim": 1.0,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/stable_diffusion/jpeg_q30.png"
+  },
+  {
+    "name": "rescale_75pct",
+    "attack_type": "rescaling",
+    "params": {
+      "scale": 0.75
+    },
+    "confidence": 0.0,
+    "psnr": 34.05007096749456,
+    "ssim": 0.9641145367972564,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/stable_diffusion/rescale_75pct.png"
+  },
+  {
+    "name": "crop_center_85pct",
+    "attack_type": "cropping",
+    "params": {
+      "crop_fraction": 0.85
+    },
+    "confidence": 0.11950926839979496,
+    "psnr": 10.713908146005213,
+    "ssim": 0.41024292322645195,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/stable_diffusion/crop_center_85pct.png"
+  },
+  {
+    "name": "noise_sigma_5",
+    "attack_type": "gaussian_noise",
+    "params": {
+      "sigma": 5.0
+    },
+    "confidence": 0.48561084113430425,
+    "psnr": 34.23348576454109,
+    "ssim": 0.8175524075918791,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/stable_diffusion/noise_sigma_5.png"
+  },
+  {
+    "name": "blur_5",
+    "attack_type": "gaussian_blur",
+    "params": {
+      "ksize": 5
+    },
+    "confidence": 0.0,
+    "psnr": 31.213869024812123,
+    "ssim": 0.934244724827847,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/stable_diffusion/blur_5.png"
+  }
+]

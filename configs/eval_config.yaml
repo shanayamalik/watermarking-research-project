@@ -1,37 +1,153 @@
 # Watermarking Evaluation Configuration
 base_config:
-  # LSB Watermarking specific config
-  watermarked_image: "results/mandrill_watermarked_lsb.png"
-  original_message: "This is a secret watermark embedded using LSB technique!"
-  
-  # Fourier Watermarking specific config
-  original_image: "images/4.2.03.tiff"
-  fourier_watermarked_image: "results/mandrill_watermarked_fourier.png"
-  
+  # Method-specific defaults
+  lsb:
+    cover_image: "images/4.2.03.tiff"
+    watermarked_image: "results/mandrill_watermarked_lsb.png"
+    message: "This is a secret watermark embedded using LSB technique!"
+
+  fourier:
+    cover_image: "images/4.2.03.tiff"
+    watermarked_image: "results/mandrill_watermarked_fourier.png"
+
+  dct:
+    cover_image: "images/4.2.03.tiff"
+    watermarked_image: "results/mandrill_watermarked_dct.png"
+    message: "This is a discrete cosine transform watermark!"
+
+  stable_diffusion:
+    cover_image: "../alex/outputs/sd2.1/000000006818.png"
+    watermarked_image: "results/stable_diffusion_watermarked.png"
+
   # General config
   compression_quality: 50
-  dir1: "path/to/watermarked_images" # Watermarked images
-  dir2: "path/to/ground_truth" # Ground truth images if needed (i.e. for fid)
-  output_file: "results/evaluation_results.json" # Output file for the evaluation results
+  output_file: "results/evaluation_results.json"
 
-# Comment out the evaluation modes that you don't want to run
+  attack_suites:
+    lsb_attack_suite:
+      watermark_method: "lsb"
+      cover_image: "images/4.2.03.tiff"
+      watermarked_image: "results/mandrill_watermarked_lsb.png"
+      message: "This is a secret watermark embedded using LSB technique!"
+      output_dir: "results/attacks/lsb"
+      results_file: "results/attacks/lsb_results.json"
+      attacks:
+        - type: "compression"
+          name: "jpeg_q80"
+          quality: 80
+        - type: "compression"
+          name: "jpeg_q30"
+          quality: 30
+    lsb_quick_suite:
+      watermark_method: "lsb"
+      cover_image: "images/4.2.03.tiff"
+      watermarked_image: "results/mandrill_watermarked_lsb.png"
+      message: "This is a secret watermark embedded using LSB technique!"
+      output_dir: "results/attacks/lsb_quick"
+      results_file: "results/attacks/lsb_quick_results.json"
+      attacks:
+        - type: "compression"
+          name: "jpeg_q80"
+          quality: 80
+        - type: "rescaling"
+          name: "rescale_75pct"
+          scale: 0.75
+        - type: "cropping"
+          name: "crop_center_85pct"
+          crop_fraction: 0.85
+        - type: "gaussian_noise"
+          name: "noise_sigma_5"
+          sigma: 5.0
+        - type: "gaussian_blur"
+          name: "blur_5"
+          ksize: 5
+
+    fourier_attack_suite:
+      watermark_method: "fourier"
+      cover_image: "images/4.2.03.tiff"
+      watermarked_image: "results/mandrill_watermarked_fourier.png"
+      output_dir: "results/attacks/fourier"
+      results_file: "results/attacks/fourier_results.json"
+      attacks:
+        - type: "compression"
+          name: "jpeg_q80"
+          quality: 80
+        - type: "compression"
+          name: "jpeg_q30"
+          quality: 30
+        - type: "rescaling"
+          name: "rescale_75pct"
+          scale: 0.75
+        - type: "cropping"
+          name: "crop_center_85pct"
+          crop_fraction: 0.85
+        - type: "gaussian_noise"
+          name: "noise_sigma_5"
+          sigma: 5.0
+        - type: "gaussian_blur"
+          name: "blur_5"
+          ksize: 5
+
+    dct_attack_suite:
+      watermark_method: "dct"
+      cover_image: "images/4.2.03.tiff"
+      watermarked_image: "results/mandrill_watermarked_dct.png"
+      message: "This is a discrete cosine transform watermark!"
+      output_dir: "results/attacks/dct"
+      results_file: "results/attacks/dct_results.json"
+      attacks:
+        - type: "compression"
+          name: "jpeg_q80"
+          quality: 80
+        - type: "compression"
+          name: "jpeg_q30"
+          quality: 30
+        - type: "rescaling"
+          name: "rescale_75pct"
+          scale: 0.75
+        - type: "cropping"
+          name: "crop_center_85pct"
+          crop_fraction: 0.85
+        - type: "gaussian_noise"
+          name: "noise_sigma_5"
+          sigma: 5.0
+        - type: "gaussian_blur"
+          name: "blur_5"
+          ksize: 5
+
+    stable_diffusion_attack_suite:
+      watermark_method: "stable_diffusion"
+      cover_image: "../alex/outputs/sd2.1/000000006818.png"
+      watermarked_image: "results/stable_diffusion_watermarked.png"
+      output_dir: "results/attacks/stable_diffusion"
+      results_file: "results/attacks/stable_diffusion_results.json"
+      attacks:
+        - type: "compression"
+          name: "jpeg_q80"
+          quality: 80
+        - type: "compression"
+          name: "jpeg_q30"
+          quality: 30
+        - type: "rescaling"
+          name: "rescale_75pct"
+          scale: 0.75
+        - type: "cropping"
+          name: "crop_center_85pct"
+          crop_fraction: 0.85
+        - type: "gaussian_noise"
+          name: "noise_sigma_5"
+          sigma: 5.0
+        - type: "gaussian_blur"
+          name: "blur_5"
+          ksize: 5
+
+# Evaluation modes: comment out anything you don't want to run
 evaluation_modes:
-  # Image Quality Tests
-  # image_quality:
-  #   - "fid"
-  #   - "clip"
-  #   - "IS" # Inception Score
-
-  # Detectability Tests  
-  # detectability:
-  #   - "binary_classifier"
-
-  # perceptual_variability:
-  #   - "lpips"
-
-  # Robustness Tests
   robustness:
-    - "compression"        # LSB watermark compression test
-    - "fourier_compression" # Fourier watermark compression test
-    # - "cropping"
-    # - "rescaling"
+    - "compression"
+    - "fourier_compression"
+    - "dct_compression"
+    - "lsb_attack_suite"
+    - "fourier_attack_suite"
+    - "dct_attack_suite"
+    - "stable_diffusion_attack_suite"

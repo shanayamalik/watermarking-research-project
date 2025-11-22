@@ -1,0 +1,68 @@
+[
+  {
+    "name": "jpeg_q80",
+    "attack_type": "compression",
+    "params": {
+      "quality": 80
+    },
+    "confidence": 1.0,
+    "psnr": 361.20199909921956,
+    "ssim": 1.0,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/dct/jpeg_q80.png"
+  },
+  {
+    "name": "jpeg_q30",
+    "attack_type": "compression",
+    "params": {
+      "quality": 30
+    },
+    "confidence": 1.0,
+    "psnr": 361.20199909921956,
+    "ssim": 1.0,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/dct/jpeg_q30.png"
+  },
+  {
+    "name": "rescale_75pct",
+    "attack_type": "rescaling",
+    "params": {
+      "scale": 0.75
+    },
+    "confidence": 0.0,
+    "psnr": 25.280049873778875,
+    "ssim": 0.8366975088829083,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/dct/rescale_75pct.png"
+  },
+  {
+    "name": "crop_center_85pct",
+    "attack_type": "cropping",
+    "params": {
+      "crop_fraction": 0.85
+    },
+    "confidence": 0.0,
+    "psnr": 13.169452156534739,
+    "ssim": 0.12049322461061286,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/dct/crop_center_85pct.png"
+  },
+  {
+    "name": "noise_sigma_5",
+    "attack_type": "gaussian_noise",
+    "params": {
+      "sigma": 5.0
+    },
+    "confidence": 0.8260869565217391,
+    "psnr": 34.10409774499801,
+    "ssim": 0.9526405057153399,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/dct/noise_sigma_5.png"
+  },
+  {
+    "name": "blur_5",
+    "attack_type": "gaussian_blur",
+    "params": {
+      "ksize": 5
+    },
+    "confidence": 0.08695652173913043,
+    "psnr": 22.812110518519724,
+    "ssim": 0.6893667171229669,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/dct/blur_5.png"
+  }
+]

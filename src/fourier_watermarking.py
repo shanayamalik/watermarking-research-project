@@ -9,6 +9,9 @@ import numpy as np
 import cv2
 import os
 
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_IMAGE = os.path.join(BASE_DIR, "images", "4.2.03.tiff")
+
 
 class FourierWatermarking:
     """Fourier domain watermarking implementation."""
@@ -92,7 +95,7 @@ class FourierWatermarking:
 if __name__ == "__main__":
     # Test Fourier watermarking
     watermarker = FourierWatermarking()
-    test_image = "images/4.2.03.tiff"
+    test_image = DEFAULT_IMAGE
     
     if os.path.exists(test_image):
         print("Testing Fourier domain watermarking...")

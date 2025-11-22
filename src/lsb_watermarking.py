@@ -10,6 +10,9 @@ import cv2
 from PIL import Image
 import os
 
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_IMAGE = os.path.join(BASE_DIR, "images", "4.2.03.tiff")
+
 
 class LSBWatermarking:
     """LSB watermarking for spatial domain embedding."""
@@ -86,20 +89,21 @@ class LSBWatermarking:
             image = cv2.imread(watermarked_image_path, cv2.IMREAD_COLOR)
         else:
             image = cv2.imread(watermarked_image_path)
-            
+
         if image is None:
             raise ValueError(f"Could not load image from {watermarked_image_path}")
-        
+
         flat_image = image.flatten()
-        binary_message = ''
         delimiter_binary = ''.join(format(ord(char), '08b') for char in self.delimiter)
-        
+        delimiter_length = len(delimiter_binary)
+        bits = []
+
         for pixel_value in flat_image:
-            binary_message += str(pixel_value % 2)
-            if delimiter_binary in binary_message:
+            bits.append(str(pixel_value % 2))
+            if len(bits) >= delimiter_length and ''.join(bits[-delimiter_length:]) == delimiter_binary:
                 break
-        
-        return self.binary_to_text(binary_message)
+
+        return self.binary_to_text(''.join(bits))
     
     def calculate_confidence_score(self, watermarked_image_path, original_message):
         """Calculate confidence score for LSB extraction (0.0 to 1.0)."""
@@ -143,7 +147,7 @@ def load_test_image(image_path):
 
 if __name__ == "__main__":
     watermarker = LSBWatermarking()
-    test_image = "images/4.2.03.tiff"
+    test_image = DEFAULT_IMAGE
     
     original = load_test_image(test_image)
     if original is not None:

@@ -1,0 +1,24 @@
+[
+  {
+    "name": "jpeg_q80",
+    "attack_type": "compression",
+    "params": {
+      "quality": 80
+    },
+    "confidence": 1.0,
+    "psnr": 361.20199909921956,
+    "ssim": 1.0,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/lsb/jpeg_q80.png"
+  },
+  {
+    "name": "jpeg_q30",
+    "attack_type": "compression",
+    "params": {
+      "quality": 30
+    },
+    "confidence": 1.0,
+    "psnr": 361.20199909921956,
+    "ssim": 1.0,
+    "output_path": "/workspace/w-r-p/shanaya/results/attacks/lsb/jpeg_q30.png"
+  }
+]
