@@ -1,7 +1,7 @@
 # Watermarking Evaluation Configuration
 base_config:
   dir1: "outputs/sd2.1/" # Watermarked images
-  dir2: "coco2017/ground_truth" # Ground truth images if needed (i.e. for fid)
+  dir2: "/n/netscratch/ydu_lab/Lab/alex/coco2017/ground_truth" # Ground truth images if needed (i.e. for fid)
   prompts_file: "outputs/sd2.1/prompts.json" # Prompts file generated during image generation (for CLIP score)
   output_file: "scores/initial_scores1.json" # Output file for the evaluation results
 
