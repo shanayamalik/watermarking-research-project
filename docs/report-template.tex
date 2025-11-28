@@ -93,6 +93,31 @@
   \emph{2025 International Symposium on Information Theory}.
 \end{abstract}
 
+\section{Background and Motivation}
+
+\subsection{Classic Watermarking Techniques}
+Digital watermarking has historically evolved from simple spatial modifications to sophisticated frequency-domain embeddings.
+\begin{itemize}
+    \item \textbf{Least Significant Bit (LSB):} This spatial domain technique embeds information by modifying the lowest bit planes of pixel values. While it offers high capacity and imperceptibility, our experiments confirm its extreme fragility; it survives lossless operations but fails under virtually any form of compression or geometric transformation.
+    \item \textbf{Discrete Cosine Transform (DCT):} Widely used in JPEG compression, DCT watermarking embeds signals into frequency coefficients. It provides a middle ground, offering robustness against compression (as the domain matches the compression algorithm) but often struggling with geometric attacks like cropping or rescaling without synchronization mechanisms.
+    \item \textbf{Discrete Fourier Transform (DFT):} DFT techniques embed watermarks in the magnitude or phase of the frequency spectrum. Our evaluation highlights DFT as a particularly robust candidate, maintaining high detection confidence across rotation, scaling, and translation (RST) attacks due to the global nature of the transform.
+    \item \textbf{Discrete Wavelet Transform (DWT):} Although not part of our primary experimental suite, DWT is a standard technique that decomposes images into multi-resolution sub-bands (approximation and detail coefficients). It allows for watermarking that closely models the Human Visual System (HVS), balancing robustness and imperceptibility.
+    \item \textbf{Tree-Ring Watermarking:} Specific to diffusion models, this technique leverages the concentric frequency artifacts ("tree rings") naturally produced by the generative process. Our "Stable Diffusion-inspired" ring mask mimics this by injecting a circular band in the frequency domain, bridging the gap between classic frequency watermarks and generative artifacts.
+\end{itemize}
+
+\subsection{Model-Specific vs. Ad-Hoc Watermarking}
+The advent of high-fidelity diffusion models necessitates a paradigm shift from ad-hoc post-processing to model-specific watermarking.
+
+\textbf{Ad-Hoc Watermarking:} Traditional methods (LSB, DCT, DFT) are applied \textit{post-hoc}, treating the generated image as a static asset. While universally applicable, they are often vulnerable to removal. For instance, a simple Gaussian blur or re-encoding can destroy an LSB watermark, and geometric shifts can desynchronize DCT blocks. Furthermore, they do not exploit the generative priors of the model.
+
+\textbf{Model-Specific Watermarking:} Embedding watermarks directly into the generative process (e.g., within the latent space of a Stable Diffusion model) offers distinct advantages:
+\begin{enumerate}
+    \item \textbf{Deep Integration:} The watermark is "baked" into the image during the reverse diffusion process. This makes the signal an integral part of the image structure rather than a fragile overlay.
+    \item \textbf{Rate-Distortion Optimization:} From an information-theoretic perspective, watermarking is a communication problem over a noisy channel. By embedding in the latent space, we can leverage the model's decoder to minimize perceptual distortion ($E[d(X,Y)] \le D_{max}$) while maximizing the reliability of the signal against the "channel noise" of the diffusion process itself.
+    \item \textbf{Robustness to Generative Attacks:} Watermarks native to the model's latent space are better positioned to survive "purification" attacks (e.g., adding noise and re-generating), as the watermark is consistent with the model's internal representation.
+\end{enumerate}
+Our research investigates this trade-off, comparing how classic image-space injections (DCT, DFT) fare against latent-inspired structures (Ring Mask) under standard perturbations.
+
 \section{Submission of Papers for Review}
 
 Papers in the form of a PDF file, formatted as described below, may be
