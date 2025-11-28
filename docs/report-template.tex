@@ -96,7 +96,7 @@
 \section{Background and Motivation}
 
 \subsection{Classic Watermarking Techniques}
-Digital watermarking has historically evolved from simple spatial modifications to sophisticated frequency-domain embeddings.
+Digital watermarking has evolved from simple spatial modifications of pixel values to frequency-domain embeddings that manipulate transform coefficients to achieve greater robustness against attacks, such as compression and cropping.
 \begin{itemize}
     \item \textbf{Least Significant Bit (LSB):} This spatial domain technique embeds information by modifying the lowest bit planes of pixel values. While it offers high capacity and imperceptibility, our experiments confirm its extreme fragility; it survives lossless operations but fails under virtually any form of compression or geometric transformation.
     \item \textbf{Discrete Cosine Transform (DCT):} Widely used in JPEG compression, DCT watermarking embeds signals into frequency coefficients. It provides a middle ground, offering robustness against compression (as the domain matches the compression algorithm) but often struggling with geometric attacks like cropping or rescaling without synchronization mechanisms.
