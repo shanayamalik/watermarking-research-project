@@ -13,7 +13,15 @@
 %% http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran/
 %%
 
-\documentclass[conference,letterpaper]{IEEEtran}
+%% 0. Abstract
+%% 1. Introduction (detailed problem motivations)
+%% 2. Classic Watermarking
+%% 3. Stable Diffusion Watermarking (Tree-ring, PRC, T2S)
+%% 4. SOTA Video Watermarking
+%% 5. Evaluations
+%% 6. Different Latent Position Watermarking
+
+\documentclass[onecolumn]{IEEEtran}
 
 %% depending on your installation, you may wish to adjust the top margin:
 \addtolength{\topmargin}{9mm}
@@ -31,7 +39,11 @@
 \usepackage[T1]{fontenc}
 \usepackage{url}
 \usepackage{ifthen}
-\usepackage{cite}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{mathrsfs} 
+\usepackage{float}
 \usepackage[cmex10]{amsmath} % Use the [cmex10] option to ensure complicance
                              % with IEEE Xplore (see bare_conf.tex)
 
@@ -40,16 +52,15 @@
 %% theorems. Also note that IEEEXplore does not accepts submissions
 %% with hyperlinks, i.e., hyperref cannot be used.
 
+
+
 \interdisplaylinepenalty=2500 % As explained in bare_conf.tex
 
 
-%%%%%%
-% correct bad hyphenation here
-\hyphenation{op-tical net-works semi-conduc-tor}
-
 % ------------------------------------------------------------
 \begin{document}
-\title{ISIT 2025 Paper Template} 
+\title{On Spatial-Temporal Robust Watermarking With Pseudo Random Codes}
+% \title{Identifying AI Content With Imperceptible Watermarks}
 
 % %%% Single author, or several authors with same affiliation:
 % \author{%
@@ -62,16 +73,13 @@
 
 %%% Several authors with up to three affiliations:
 \author{%
-  \IEEEauthorblockN{Author 1}
-  \IEEEauthorblockA{Department of Electrical Engineering \\
-                    University 1\\
-                    City 1\\
-                    Email: author1@university1.edu}
-  \and
-  \IEEEauthorblockN{Author 2 and Author 3}
-  \IEEEauthorblockA{Research Center XY\\ 
-                    City 2\\
-                    Email: \{author2, author3\}@research-center.com}
+  \IEEEauthorblockN{Shai Dickman},
+  \IEEEauthorblockN{Shanaya Malik},
+  \IEEEauthorblockN{Alex Tong},
+  \IEEEauthorblockN{Esha Garg}
+  \begin{center}
+    \today
+  \end{center}
 }
 
 
@@ -79,243 +87,168 @@
 
 \maketitle
 
-%%%%%%
-%% Abstract: 
-%% If your paper is eligible for the student paper award, please add
-%% the comment "THIS PAPER IS ELIGIBLE FOR THE STUDENT PAPER
-%% AWARD." as a first line in the abstract. 
-%% For the final version of the accepted paper, please do not forget
-%% to remove this comment!
-%%
-
+%%% SHAI %%%
 \begin{abstract}
-   Instructions are given for the preparation and submission of papers for the
-  \emph{2025 International Symposium on Information Theory}.
+The introduction of generative models has ushered in an era of eerily realistic synthetic content across a broad range of media, such as images, audio, and language. Although the capabilities of these models are certainly impressive, the rapid adaptation raise serious concerns about misinformation and copyright abuse. As a result, it is crucial to have reliable methods for identifying artificially generated content. Watermarking addresses this need by embedding a statistical signal during generation that indicates AI origin. Unlike classical watermarking, generative models allow such signals to be integrated directly into the sampling process, enabling stronger robustness and improved undetectability.
+% Although the capabilities of these models are certainly impressive, it is important to reflect on their future implications. These models pose significant societal risks, such as enabling the spread of misinformation and making copyright enforcement more difficult. Thus, it is crucial to have reliable methods for identifying artificially generated content, such as watermarking. The goal of a watermark is to embed a strong statistical indicator that content originated from an AI system. This problem is distinct from classical watermarking because the generative processes inherent to AI models can be used to embed watermarks in less detectable and more robust ways. 
+However, while watermarking has been studied extensively for language and image models, video generation models remain relatively underexplored despite their growing presence on social media platforms. The temporal aspect of videos introduces new vulnerabilities—such as clipping and frame dropping. In this report, we study the PRC watermark \citep{gunn2025undetectable} and examine its application to video models, specifically analyzing its robustness to temporal attacks and noting the trade-offs between capacity, imperceptibility, robustness, and undetectability.
 \end{abstract}
 
-\section{Submission of Papers for Review}
+\section{Background}
+From an information-theoretic perspective, watermarking can be modeled as a communication problem over a noisy channel. We want to guarantee reliable communication of an embedded watermark across a family of adversarial channels, subject to imperceptibility constraints. More specifically, for robustness we seek to minimize the probability of decoding error $P_\epsilon$ over a family of channels $\{C_i\} \subseteq \mathcal{A}$, where $\mathcal{A}$ denotes the set of adversarial channels:
+\[\sup_{C_i \in \mathcal{A}}P_\epsilon(C_i) < \delta\] for some small $\delta$. As we will discuss later, these adversarial channels can include attacks on a sample (image, video, etc.) as well as the watermark extraction process if such a process is imperfect.
 
-Papers in the form of a PDF file, formatted as described below, may be
-submitted online as indicated on the webpage. 
-
-The deadline for registering the paper and uploading the manuscript is \textbf{January 22, 2025} (anywhere on earth). \textbf{No extensions will be given.}
-
-A paper's primary content is restricted in length to \textbf{5 pages}, but
-authors are allowed an optional 6th page only containing references. The submission may contain a link to a longer, online version of the submitted manuscript, if the authors wish to include one.
- 
-The IEEEtran-conference style should be used as presented here. Submissions should use a font size of at least 10 points and have reasonable margins on all the 4 sides of the text.
-
-Papers that are eligible for the student paper award must  include the comment ``THIS PAPER IS ELIGIBLE FOR THE STUDENT PAPER AWARD." as a first line in the abstract.
+In addition to robustness, watermarking must also satisfy imperceptibility, which can be modeled as a distortion constraint. Unlike classical channel coding, where the goal is to maximize rate, watermarking has an additional constraint: the distortion it introduces must fit within a perceptual budget (hidden from humans):
+\begin{equation}
+    \mathbb{E}[d(X,Y)] \leq D_{max}
+\end{equation}
+where $d(\cdot)$ is the distortion measure, $Y$ is the watermarked signal (image), and $X$ is the original. Overall, this makes watermarking a joint rate–distortion and channel coding problem. In practice, a watermarked image may look completely different from a non-watermarked image for the same random seed; however, what truly matters is that the distributions of $X$ and $Y$ are similar. Thus, the distortion measure $d$ is often a distance metric between distributions rather than between individual watermarked and non-watermarked images.
 
 
-\section{Submission of Accepted Papers}
-
-Accepted papers will be published in full. For papers that are eligible for the student paper award, please do not forget to remove the comment regarding the paper's eligibility from the abstract.
-
-
-
-\section{Paper Format}
-
-\subsection{Templates}
-
-The paper (A4 or letter size, double-column format, not exceeding 5 pages plus an optional 6th page only containing references) should be formatted as shown in this sample \LaTeX{} file
-\cite{Laport:LaTeX, GMS:LaTeXComp, oetiker_latex, typesetmoser}.
-
-The use of Microsoft Word or other text processing systems instead of \LaTeX{} is strongly
-discouraged. Users of such systems should attempt to duplicate the
-style of this example, in particular the sizes and type of font, as
-closely as possible.
+%%%%%% SHANAYA 
+\subsection{Classic Watermarking Techniques}
+Digital watermarking has evolved from simple spatial modifications of pixel values to frequency-domain embeddings that manipulate transform coefficients to achieve greater robustness against attacks, such as compression and cropping. 
+\begin{itemize}
+    \item \textbf{Least Significant Bit (LSB):} The LSB spatial domain technique embeds information by modifying the lowest bit planes of pixel values. It offers high capacity and imperceptibility, but our experiments confirmed its extreme fragility; it survives lossless operations but fails under virtually any form of compression or geometric transformation.
+    \item \textbf{Discrete Cosine Transform (DCT):} Widely used in JPEG compression, DCT watermarking embeds signals into frequency coefficients. It provides a middle ground, offering robustness against compression (as the domain matches the compression algorithm) but often struggling with geometric attacks like cropping or rescaling without synchronization mechanisms.
+    \item \textbf{Discrete Fourier Transform (DFT):} DFT techniques embed watermarks in the magnitude or phase of the frequency spectrum. Our evaluation highlights DFT as a particularly robust candidate, maintaining high detection confidence across rotation, scaling, and translation (RST) attacks due to the global nature of the transform.
+    \item \textbf{Discrete Wavelet Transform (DWT):} Although not part of our primary experimental suite, DWT is a standard technique that decomposes images into multi-resolution sub-bands (approximation and detail coefficients). It allows for watermarking that closely models the Human Visual System (HVS), balancing robustness and imperceptibility.
+    \item \textbf{Tree-Ring Watermarking:} Specific to diffusion models, this technique leverages the concentric frequency artifacts ("tree rings") naturally produced by the generative process. Our "Stable Diffusion-inspired" ring mask mimics this by injecting a circular band in the frequency domain, bridging the gap between classic frequency watermarks and generative artifacts.
+\end{itemize}
 
 
-\subsection{Formatting}
+%%%%%% SHANAYA
+\subsection{Model-Specific vs. Ad-Hoc Watermarking}
+The advent of high-fidelity diffusion models necessitates a paradigm shift from ad-hoc post-processing to model-specific watermarking.
 
-The style of references, equations, figures, tables, etc. should be
-the same as for the \emph{IEEE Transactions on Information
-  Theory}. 
-  
-  The source file of this template paper contains many more
-instructions on how to format your paper. For example, example code for
-different numbers of authors, for figures and tables, and references
-can be found (they are commented out).
+\textbf{Ad-Hoc Watermarking:} Traditional methods (LSB, DCT, DFT) are applied \textit{post-hoc}, treating the generated image as a static asset. While universally applicable, they are often vulnerable to removal. For instance, a simple Gaussian blur or re-encoding can destroy an LSB watermark, and geometric shifts can desynchronize DCT blocks. Furthermore, they do not exploit the generative priors of the model.
 
+\textbf{Model-Specific Watermarking:} Embedding watermarks directly into the generative process (e.g., within the latent space of a Stable Diffusion model) offers distinct advantages:
+\begin{enumerate}
+    \item \textbf{Deep Integration:} The watermark is "baked" into the image during the reverse diffusion process. This makes the signal an integral part of the image structure rather than a fragile overlay.
+    \item \textbf{Rate-Distortion Optimization:} From an information-theoretic perspective, watermarking is a communication problem over a noisy channel. By embedding in the latent space, we can leverage the model's decoder to minimize perceptual distortion ($E[d(X,Y)] \le D_{max}$) while maximizing the reliability of the signal against the "channel noise" of the diffusion process itself.
+    \item \textbf{Robustness to Generative Attacks:} Watermarks native to the model's latent space are better positioned to survive "purification" attacks (e.g., adding noise and re-generating), as the watermark is consistent with the model's internal representation.
+\end{enumerate}
+Our research investigates this trade-off, comparing how classic image-space injections (DCT, DFT) fare against latent-inspired structures (Ring Mask) under standard perturbations.
 
-%%%%%%
-%% An example of a floating figure using the graphicx package.
-%% Note that \label must occur AFTER (or within) \caption.
-%% For figures, \caption should occur after the \includegraphics.
-%%
-% \begin{figure}[htbp]
-%   \centering
-%   \includegraphics[width=0.3\textwidth]{myfigure}
-%   % where an .eps filename suffix will be assumed under latex,
-%   % and a .pdf suffix will be assumed for pdflatex
-%   \caption{Simulation results.}
-%   \label{fig:sim}
-% \end{figure}
-%%%%%%
+%%% SHAI %%%
+\section{Generative Model Inference$\And$Inversion}
+As described earlier, it can be valuable to embed watermarks within the sampling process of a generative model rather than after generation. Most image and video generation models use latent space iterative processes that are initialized with Gaussian noise. A common technique is to watermark this initial Gaussian latent through some detectable transformation. To  extract the watermark, however, there needs to be a way to predict the initial latent from a given sample. Thus, an understanding of the inner workings of these generative models is important. We provide a brief overview of the sampling and inverse sampling methods of Stable Diffusion 1.5 \citep{rombach2021highresolution}, a Diffusion image model, and Open Sora 1.3 \citep{opensora}, a Flow-Matching video model. In the following sections, we investigate how to watermark outputs from these models by using corresponding sampling and inverse sampling algorithms.
 
-%%%%%%
-%% An example of a double column floating figure using two subfigures.
-%% (The subfigure.sty package must be loaded for this to work.)  The
-%% subfigure \label commands are set within each subfigure command,
-%% the \label for the overall figure must come after \caption.  
-%% \hfil must be used as a separator to get equal spacing
-%%
-% \begin{figure*}[htbp]
-%   \centerline{\subfigure[Case I]{\includegraphics[width=2.5in]{subfigcase1}
-%       % where an .eps filename suffix will be assumed under latex,
-%       % and a .pdf suffix will be assumed for pdflatex
-%       \label{fig:first_case}}
-%     \hfil
-%     \subfigure[Case II]{\includegraphics[width=2.5in]{subfigcase2}
-%       % where an .eps filename suffix will be assumed under latex,
-%       % and a .pdf suffix will be assumed for pdflatex
-%       \label{fig:second_case}}}
-%   \caption{Simulation results.}
-%   \label{fig:sim}
-% \end{figure*}
-%%%%%%
+\subsection{Stable Diffusion 1.5}
+\begin{figure}                 
+    \centering
+    \includegraphics[width=0.48\linewidth]{images/stablediffusiongen.png}
+      \quad\quad
+    \includegraphics[width=0.38\linewidth]{images/intermediates.png}
+    \caption{Stable Diffusion model architecture \citep{rombach2021highresolution} (left), Stable Diffusion 1.5 example: "Claude Shannon holding a red balloon" (right).}
+\end{figure}
 
-%%%%%%
-%% An example of a floating table. 
-%% Note that, for IEEE style tables, the \caption command should come
-%% BEFORE the table. Table text will default to \footnotesize as IEEE
-%% normally uses this smaller font for tables. The \label must come
-%% after \caption as always.
-%%
-% \begin{table}[htbp]
-%   % increase table row spacing, adjust to taste
-%   \renewcommand{\arraystretch}{1.3}
-%   \caption{An Example of a Table}
-%   \label{tab:table_example}
-%   \centering
-%   % Some packages, such as MDW tools, offer better commands for making tables
-%   % than the plain LaTeX2e tabular which is used here.
-%   \begin{tabular}{|c||c|}
-%     \hline
-%     One & Two\\
-%     \hline
-%     Three & Four\\
-%     \hline
-%   \end{tabular}
-% \end{table}
-%%%%%%
-
-For instructions on how to typeset math, in particular for equation
-arrays with broken equations, we refer to \cite{typesetmoser}.
-
-Final papers should have no page numbers and no headers or footers (both will be added during the production of the proceedings).
-The top and bottom margins should be at least 0.5 inches to leave room for page numbers.
-All fonts should be embedded in the pdf file.
-
-\subsection{PDF Requirements}
-
-Only electronic submissions in form of a PDF file will be
-accepted. The PDF file has to be PDF/A compliant. A common problem is
-missing fonts. Make sure that all fonts are embedded. (In some cases,
-printing a PDF to a PostScript file, and then creating a new PDF with
-Acrobat Distiller, may do the trick.) More information (including
-suitable Acrobat Distiller Settings) is available from the IEEE
-website \cite{IEEE:pdfsettings, IEEE:AuthorToolbox}.
+The iterative processes that define Diffusion models are called the forward and reverses processes. Figure 1 shows these processes in the Stable Diffusion architecture. Forward diffusion iteratively adds Gaussian noise to a data point $x_0$ to achieve a final noised result $x_T$. Here, $x_0$ is the latent representation of an image, which is derived by a model encoder. There is also a corresponding decoder which converts latents to images for the reverse process. The forward process can be written in a closed form as
+\begin{equation}
+    x_t=\sqrt{\bar{\alpha}_t}x_0+\sqrt{1-\bar{\alpha}_t}\epsilon, \quad \epsilon\sim\mathcal{N}(0,I)
+\end{equation}
+where $\bar{\alpha}_t$ is a function of the scheduled variances for the iteratively added noise and the $\epsilon$ term represents the cumulative Gaussian noise. Inference is done via the reverse (or denoising) process which generates a sample latent given an initial Gaussian latent. An example of this process is depicted in Figure 1. Deep Diffusion Implicit Model (DDIM) is a commonly used process for sampling and is used to sampling from Stable Diffusion 1.5 \citep{song2022denoisingdiffusionimplicitmodels, rombach2021highresolution}. At each denoising step, we form a prediction $\epsilon_\theta$ of the cumulative noise added to $x_0$ to get $x_t$ during the forward process. We use this noise prediction to form an estimate $\hat{x}_0^t$ of the initial sample $x_0$. Finally, we predict $x_{t-1}$ using the DDIM update step:
+\begin{equation}
+    x_{t-1}=\sqrt{\bar{\alpha}_{t-1}}\hat{x}_0^t + \sqrt{1-\bar{\alpha}_{t-1}}\epsilon_\theta(x_t)
+\end{equation}
 
 
+We approximate the inversion of this method in the same way as the Tree-ring watermarking paper as well as several others \citep{wen2023treeringwatermarksfingerprintsdiffusion}. This inversion assumes $x_t-x_{t-1}\approx x_{t+1}-x_t$. It is as follows:
+\begin{equation}
+    x_{t+1}=\sqrt{\bar{\alpha}_{t+1}}\hat{x}_0^t + \sqrt{1-\bar{\alpha}_{t+1}}\epsilon_\theta(x_t)
+\end{equation}
+This method is an approximation and will accumulate errors from each additional step.
+
+\subsection{Open Sora 1.3}
+Flow-Matching is another generative process with strong parallels to Diffusion model, however formulated in a distinct way. The forward process is a linear deterministic interpolation between the data point $x_0$ and a noise term $\epsilon$ \citep{lipman2023flowmatchinggenerativemodeling}. In Open Sora, $x_0$ is the latent representation of an entire video. Like Stable Diffusion, Open Sora uses an encoder and decoder to map between pixel/temporal space and latent space. It also lets the noise term $\epsilon$ be Gaussian which makes the forward process correspond to a Diffusion forward process. The distinct difference between the latent representation of Open Sora and Stable Diffusion is that Open Sora uses an additional temporal dimension. Also, while Diffusion models are trained to predict the additive noise at a given timestep, Flow-Matching models are trained as vector fields $v_\theta$ that can be integrated via standard ODE solvers to derive samples $\hat{x}_0$ from an initial state of Gaussian noise \citep{lipman2023flowmatchinggenerativemodeling}. These two methods are very similar and in fact the DDIM update step can be shown to have the same structure as Euler's method, a first-order accurate scheme for solving ODEs and a popular method used in Flow-Matching inference \citep{xu2025unveilinversioninvarianceflow}. The Flow-Matching update step is:
+\begin{equation}
+    x_{n-1}=x_n+(t_n-t_{n-1})v_\theta(x_n;t_n)
+\end{equation}
+
+
+Operating under the same assumption as DDIM inversion that $x_t-x_{t-1}\approx x_{t+1}-x_t$, we use the following inverse step:
+\begin{equation}
+    x_n=x_{n-1}-(t_n-t_{n-1})v_\theta(x_{n-1};t_n)
+\end{equation}
+
+
+Like DDIM, there are accuracy concerns with this inversion since it is still an approximation. For an exact inversion, we can solve the implicit update step
+\begin{equation}
+    x_n=x_{n-1}-(t_n-t_{n-1})v_\theta(x_n;t_n)
+\end{equation}
+but this is computationally more demanding as it will require multiple fixed point iterations. This method has been used for image editing which requires higher accuracy inversion \citep{xu2025unveilinversioninvarianceflow}, however, like with DDIM, we found that an approximate inversion is sufficient for extracting the watermark.
+
+\subsection{Consequences of Approximate Inversions}
+It is important to acknowledge an additional challenge of injecting a watermark into the initial latent of a generative model: the inverse process to predict the initial latent can in itself degrade the watermark, even without any attacks on the original sample. The inverse processes for Stable Diffusion and Open Sora, while slightly different, are both approximations and accumulate error. In fact, both inversions are first-order accurate, which means that the error introduced is $O(1/N)$ where $N$ is the number of Diffusion or Flow-Matching iterations.
+
+Let $X$ be the watermarked image, $Y$ be the attacked image, and $f(Y)$ be the predicted noise latent from the attacked image. We can view the errors introduced by $f$ as just additional image attacks. Then $X-Y-f(Y)$ form a Markov Chain. By the Data Processing Inequality, $I(X,f(Y))\leq I(X, Y)$. It follows that the capacity of a watermark extracted from the approximate inverted latent representation $f(Y)$ is upper bounded by the capacity of a watermark extracted directly from $Y$. Thus, if $f$ is not a bijection, we will theoretically have lower watermark capacity by embedding it into the initial Gaussian latent. However, we argue that the benefits in imperceptibility and the unlearnability of the watermark outweigh these faults.
+
+\input{prc-overview}
+
+\section{Experiments}
+\subsection{Experiment Setup}
+While the crux of our discussion revolves around video watermarking, it is important to first draw an analogy to watermarking for image generation. As a result, we start by studying the effects of cropping attacks on watermarked images. We note that this specific attack is not mentioned \citep{gunn2025undetectable} nor in many previous watermarking papers. We hypothesize that this is because cropping is a destructive attack, destroying image content as well as the watermark. Furthermore, aggressive cropping reduces image utility.
+
+In contrast, desynchronization attacks are a very common concern in video watermarking. Temporal operations such as clipping, frame interpolation, and frame-dropping preserve most of the semantic content and practical utility of a video, and frequently arise both from human-induced post-processing and standard transmission pipelines (e.g., packet loss). As a result, temporal misalignment is not a purely adversarial setting but an inherent property of real-world video distribution. 
+
+As a result, we first study the effects of clipping on image generation as a precursor to video generation, then spend most of our exposition on temporal robustness against attacks like clipping, subsampling, frame interpolation, and frame dropping. 
+
+\subsection{Stable 
+Diffusion 1.5}
+\begin{itemize}
+    \item Resizing image and black out sections, black out random pixels (different types of cropping i.e. cropping borders/corners/middle of image, random sections of the image)
+\end{itemize}
+
+\subsection{Open Sora 1.3}
+\begin{itemize}
+    \item Clipping video to be shorter (beginning, end, middle, random frames)
+    \item Speed Manipulation (Sub-sampling or double-sampling)
+    \item swapping frames
+    \item reversing the video
+    \item Normal cropping of the video
+    \item Looping???
+\end{itemize}
+Human Eval Distinguishability (given 2 videos, 1 watermarked, 1 unwatermarked) pick the watermarked image (run across 10 videos 4 ppl, and avg)
+
+We evaluated the PRC watermark on VBench, a standard video generation benchmark that has been shown to align well with human preferences \citep{zheng2025vbench2}. This benchmark is made up of 2000 curated image prompts that are targeted towards 16 different metrics comprising a quality, semantic, and total score. For each prompt, we generate 5 watermarked and unwatermarked 2-second video clips, each at a resolution of 360p.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.58\linewidth} % 'c' centers vertically
+        \centering
+        \resizebox{\linewidth}{!}{ % scales table to minipage width
+        \begin{tabular}{c|ccc}
+            \hline
+             Model & Total (\%) & Quality (\%) & Semantic (\%) \\
+             \hline
+             Open-Sora 1.3 & \textbf{78.43} & \textbf{81.57} & 65.89\\
+             Open-Sora 1.3 w/ PRC & 78.32 & 81.40 & \textbf{66.04}  \\ 
+        \end{tabular}
+        }
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.38\linewidth} % 'c' centers vertically
+        \centering
+        \includegraphics[width=\linewidth]{images/vbench_metrics.png}
+    \end{minipage}
+    \caption{Weighted VBench summary statistics (left), Full VBench metric comparison with standard error bars (right).}
+    \label{fig:vbench}
+\end{figure}
+
+The results in Figure \ref{fig:vbench} show that the PRC watermark did not noticeably impact the generative ability of the Open Sora model, thus establishing its strength in imperceptibility. This metric indicates that the distributions of the watermarked and unwatermarked Open-Sora samples are very similar.
+
+\section{Discussion}
+\subsection{Failures of PRC}
+While we have shown that the technique of PRC in images can extended to videos, we find that this natural extension is not sufficient for withstanding temporal attacks. Our results fail to achieve a desirable tradeoff between capacity and temporal robustness. In fact, we find cropping and rotations attacks in images to be comparable failure modes to the temporal attacks on videos. These failures can be explained by the VAE architectures used in both image and video models. Encoders are designed to compress the sample space into a smaller latent space. The crucial characteristic of these encoders is that they preserve local structure. For example, the 2D autoencoder used in Stable Diffusion preserves the structure of the spatial dimensions via a CNN architecture forming a patch code book \citep{esser2021tamingtransformershighresolutionimage, rombach2021highresolution}. The 3D autoencoder used in Open Sora builds on top of a 2D autoencoder by first compressing the spatial dimensions, and then using a causal temporal 3D CNN, compresses every 4 frames into a single latent \citep{yu2024languagemodelbeatsdiffusion, opensora}. In summary, the model architectures of image and video autoencoders are precisely designed to preserve the structure of their corresponding sample space's spatial and temporal dimensions. This structure preservation causes simple geometric and temporal attacks to destroy the PRC watermark. A rotation of an image or the removal of the first frames in a video completely offset the original latent structure, potentially causing a deletion attack on the watermark code. A deletion attack at the beginning of the code will make the entire code neither detectable nor decodable since it will cause the entire code to shift whereas the code is only robust to substitution \citep{gunn2025undetectable}.
+\section{Future Directions}
+Apply to Wan2.1 (see above discussion - probably should reorganize and bring into this section)
+
+We predict that a higher message capacity can be achieved by using the PRC watermark across the temporal dimension, however establishing this empirically is left for future work.
 \section{Conclusion}
 
-We conclude by pointing out that on the last page the columns need to
-balanced. Instructions for that purpose are given in the source file (but are commented out).
-
-Moreover, example code for an appendix (or appendices) can also be
-found in the source file (they are commented out).
-
-%%%%%%
-%% Appendix:
-%% If needed a single appendix is created by
-%%
-%\appendix
-%%
-%% If several appendices are needed, then the command
-%%
-% \appendices
-%%
-%% in combination with further \section commands can be used.
-%%%%%%
-
-\section*{Acknowledgment}
-
-We are indebted to Michael Shell for maintaining and improving
-\texttt{IEEEtran.cls}. 
-
-
-%%%%%%
-%% To balance the columns at the last page of the paper use this
-%% command:
-%%
-%\enlargethispage{-1.2cm} 
-%%
-%% If the balancing should occur in the middle of the references, use
-%% the following trigger:
-%%
-%\IEEEtriggeratref{7}
-%%
-%% which triggers a \newpage (i.e., new column) just before the given
-%% reference number. Note that you need to adapt this if you modify
-%% the paper.  The "triggered" command can be changed if desired:
-%%
-%\IEEEtriggercmd{\enlargethispage{-20cm}}
-%%
-%%%%%%
-
-
-%%%%%%
-%% References:
-%% We recommend the usage of BibTeX:
-%%
-%\bibliographystyle{IEEEtran}
-%\bibliography{definitions,bibliofile}
-%%
-%% where we here have assumed the existence of the files
-%% definitions.bib and bibliofile.bib.
-%% BibTeX documentation can be obtained at:
-%% http://www.ctan.org/tex-archive/biblio/bibtex/contrib/doc/
-%%%%%%
-
-
-
-%% Or you use manual references (pay attention to consistency and the
-%% formatting style!):
-\begin{thebibliography}{9}
-
-\bibitem{Laport:LaTeX}
-L.~Lamport,
-  \emph{\LaTeX: A Document Preparation System,} 
-  Addison-Wesley, Reading, Massachusetts, USA, 2nd~ed., 1994. 
-
-\bibitem{GMS:LaTeXComp}
-F.~Mittelbach, M,~Goossens, J.~Braams, D.~Carlisle, and
-C.~Rowley, \emph{The {\LaTeX} Companion,} Addison-Wesley,
-Reading, Massachusetts, USA, 2nd~ed., 2004.
-
-\bibitem{oetiker_latex}
-T.~Oetiker, H.~Partl, I.~Hyna, and E.~Schlegl, \emph{The Not So Short
-  Introduction to {\LaTeX2e}}, version 5.06, Jun.~20, 2016. [Online].
-  Available: \url{https://tobi.oetiker.ch/lshort/}
-
-\bibitem{typesetmoser}
-S.~M. Moser, \emph{How to Typeset Equations in {\LaTeX}}, version 4.6,
-  Sep. 29, 2017. [Online]. Available:
-  \url{http://moser-isi.ethz.ch/manuals.html#eqlatex}
-
-\bibitem{IEEE:pdfsettings}
-IEEE, \emph{Preparing Conference Content for the IEEE Xplore Digital
-  Library.} [Online]. Available:
-  \url{http://www.ieee.org/conferences_events/conferences/organizers/pubs/preparing_content.html}
-
-\bibitem{IEEE:AuthorToolbox}
-IEEE, \emph{Author Digital Toolbox.} [Online.] Available:
-  \url{http://www.ieee.org/publications_standards/publications/authors/authors_journals.html}
-
-\end{thebibliography}
-
+\bibliographystyle{plainnat}  
+\bibliography{references}
 
 \end{document}
 

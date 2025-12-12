@@ -1,0 +1,52 @@
+\newcommand{\authnote}[3]{\textcolor{#3}{[{\footnotesize {\bf #1:} { {#2}}}]}}
+\newcommand{\esha}[1]{\authnote{Esha}{#1}{red}}
+
+
+%%% ESHA %%%
+\section{PRC Watermarking} 
+
+Other things to include?
+\begin{itemize}
+    \item What is watermarking? A vibes based problem definition
+    \item What is possible? feasibility results + formalizations
+    \item Current approaches - Practical watermarking + attacks generally considered.
+\end{itemize}
+2
+Outline for this section
+\begin{itemize}
+    \item Undetectable Watermarks
+    \item PRC watermark - what problems it solves
+    \item Basic approavh
+    \item Issues and extensions
+\end{itemize}
+
+
+
+\subsection{Undetectable Watermarks}
+
+\subsubsection{Pseudorandom Codes}
+
+Pseudorandomness refers to the 
+
+
+
+Undetectability \cite{CGZ23} is strong \textit{quality} guarantee on the output of a watermarking scheme. Informally, It states that any distribution of watermarked outputs is computationally indistinguishable from a distribution of un-watermarked outputs of the model. This ensures that there is no degradation that can be detected by humans\esha{needs more evidence} or computers. \esha{how would this relate to the perceptual budget idea presented in info theory context?}. A Pseudorandom Code (PRC) \cite{CG24} is an encryption scheme with two properties. First, Pseudorandom encryption, states that for an \esha{add properties informal definitions}.
+
+The PRC watermark recently proposed by \cite{gunn2025undetectable}, works by embedding such a PRC into the initial latent for a diffusion model. Then, errors are introduced via both the adversarial channel, and the approximate inversion process. The recovered code is detected using the PRC detection algorithm. \esha{concrete differences in function between detect and decode - comes from the fact that error-correction is harder than error-detection?} \esha{actually give the algorithm? or make a flowchart}
+
+
+PRC watermarking embed works by embedding a code directly in the initial latent of a model's sampling process in such a way that the latent is still Gaussian, resulting in a sample that is still in distribution and thus has no loss in generative quality \citep{gunn2025undetectable}. 
+
+
+\esha{I wouldn't be certain about this one - needs checking(Pseudorandom codes are by all intents and purposes random? also thought - P= BPP possibly is still open - not sure if relevant)} Therefore, these watermarks create tradeoffs in sample diversity rather than quality, whereas ad-hoc schemes make tradeoffs in quality rather than sample diversity.
+
+
+\subsection{Robustness of PRC}
+\begin{itemize}
+    \item \textbf{Pixel-level Attacks}: The PRC paper shows that the watermark is robust to especially pixel-level attacks \citep{gunn2025undetectable}. These attacks include photometric distortions such as contrast adjustments and degradation distortions such as noise and compression. For these attacks, PRC performed similarly to the Tree-ring watermark and slightly worse than the Gaussian shading watermark.
+    \item \textbf{Regeneration Attacks}: Regeneration attacks are a family of attacks which use the diffusion process to naturally remove the watermark. This method alters an image's latent representation using the generative model architecture \citep{zhao2024invisibleimagewatermarksprovably}. The PRC paper implemented two attacks of this kind: diffusion model-based and VAE-based attacks. The diffusion attacks add Gaussian noise to the latent and then execute additional denoising steps. The VAE attacks use pretrained autoencoders to compress the images. PRC performs worse than Tree-ring and Gaussian shading for these evaluations. Importantly, these attacks retain the semantic quality of the original images and are particularly harmful to pixel-level watermarks \citep{zhao2024invisibleimagewatermarksprovably}. The PRC is embedded directly in the latent without any additional transformation, unlike Tree-ring, so the PRC paper's claim that "the watermark operates at a semantic level" may not be entirely true. Its vulnerability to these attacks as well as the structure preservation of VAE architectures, as will be discussed later in this report, indicate that PRC is embedded more closely to the pixel-level and thus has areas for future improvement.
+    \item \textbf{Undetectability}: An immense strength of PRC is its undetectability. To establish this empirically, the PRC paper trained a neural network model to detect a watermark without the key \citep{gunn2025undetectable}. The model was trained on techniques including Tree-ring, Gaussian Shading, and PRC. PRC was the only technique that the model could not learn to detect the watermark. Thus, while Gaussian Shading is generally more robust to the previously described attacks, it decreases sample diversity significantly and is in fact more detectable than PRC. This is likely because all images generated via Gaussian Shading correspond to a similar Gaussian quadrant which is learnable whereas the PRC, within a limited adversarial compute budget, still appears to be completely Gaussian.
+\end{itemize}
+
+\subsection{Motivation of PRC Video Integration}
+PRC has been shown to have potential for image watermarking so we investigate if the code can be extended successfully to videos. In particular, we evaluate the temporal robustness of this watermark. Open Sora uses a single multi-dimensional Gaussian latent just like Stable Diffusion, so we can apply the exact same method of embedding the code as before. However, why even embed the watermark across the entire latent rather instead of embedding a copy in every frame? If we instead embed a watermark in every frame then we should be more robust to temporal attacks. This is comparable to why we might embed a PRC watermark across an entire image rather than embedding several watermark copies in different regions of an image. The answer is capacity. A larger latent space allows for larger capacity for a message. The additional temporal dimension of the video latent means we have a higher watermarking capacity. This introduces a new tradeoff between robustness to temporal attacks and capacity. We may not want to embed a single watermark in an entire movie, however we may not want to embed it in every latent either. This is especially relevant to the more recent video generation model Wan which generates frames in chunks instead of one single video like Open Sora \citep{wen2023treeringwatermarksfingerprintsdiffusion}. One could embed a watermark into the latents that generate chunks of frames so that higher capacity than single frame watermarking is achieved while also being robust to more extreme temporal attacks. For our experiments, we explore both embedding one code across the whole latent and embedding copies of the same code in every latent to evaluate a possible tradeoff.
