@@ -5,48 +5,141 @@
 %%% ESHA %%%
 \section{PRC Watermarking} 
 
-Other things to include?
+One of the most important properties of watermarks in the real world is \textbf{imperceptibility}, or the idea that a watermark should be subtle, not detectable by humans. This also includes not degrading the quality of the output. Since a large amount of money and energy is put into fine tuning these models, ensuring quality preservation is essential if watermarks are to be adopted in practice. Imperceptibility has often been calculated empirically via scores like CLIP or FID. 
+
+
+However,~\citep{CGZ23} proposed a new, formalized definition for a very strong imperceptibility guarantee, which they call \textbf{undetectability}. For any output with a high enough empirical entropy, undetectability states it is infeasible to distinguish between the distributions of $\mathsf{\overline{Model}}$ (A random variable representing the $\mathsf{Model}$ response) and $\mathsf{Wat}_{\mathsf{sk}}$ (The distribution over watermarked outputs, given a secret key $\mathsf{sk}$), even when
+those can be queried adaptively with arbitrary prompts.
+
+The definition in \citep{CGZ23} is restated below.
+
+\begin{definition}[Computational Undetectability]
+A watermarking scheme
+$\mathcal{W} = (\mathsf{Setup}, \mathsf{Wat}, \mathsf{Detect})$
+is \emph{undetectable} if for every security parameter $\lambda$ and all
+polynomial-time distinguishers $\mathcal{D}$,
+\[
+\left|
+\Pr\!\left[ \mathcal{D}^{\mathsf{Model},\mathsf{\overline{Model}}}(1^\lambda) \to 1 \right]
+-
+\Pr_{\mathsf{sk} \leftarrow \mathsf{Setup}(1^\lambda)}\!\left[
+\mathcal{D}^{\mathsf{Model},\mathsf{Wat}_{\mathsf{sk}}}(1^\lambda) \to 1
+\right]
+\right|
+\le \mathsf{negl}(\lambda).
+\]
+\end{definition}
+
+\noindent
+Here, the notation $\mathcal{D}^{\mathcal{O}_1,\mathcal{O}_2}$ means that
+$\mathcal{D}$ is allowed to adaptively query both oracles
+$\mathcal{O}_1$ and $\mathcal{O}_2$ with arbitrary prompts.
+
+Note that Distinguisher is given access to both the actual $\mathsf{Model}$, as well as the distributions of watermarked and un-watermarked outputs. 
+
+\subsection{Achieving Undetectability}
+
+\citep{CG24} proposes a novel approach to watermarking by replacing the randomness used by the generation process in the model with codewords from a pseudorandom error-correcting code (PRC). This means that the randomness used by the model (and hence the model response) is modified in a way that is undetectable without the secret watermarking key $\mathsf{sk}$. In the next section, we discuss the definition and properties of a PRC and provide an overview of the construction in \citep{CG24}.
+
+
+\subsection{PRC Details}
+A \emph{pseudorandom code} (PRC) \citep{CG24} is defined by algorithms
+$\mathsf{Encode}$ and $\mathsf{Decode}$ satisfying two properties:
 \begin{itemize}
-    \item What is watermarking? A vibes based problem definition
-    \item What is possible? feasibility results + formalizations
-    \item Current approaches - Practical watermarking + attacks generally considered.
-\end{itemize}
-2
-Outline for this section
-\begin{itemize}
-    \item Undetectable Watermarks
-    \item PRC watermark - what problems it solves
-    \item Basic approavh
-    \item Issues and extensions
+  \item \emph{Pseudorandomness:} Any efficient adversary, without knowledge of
+  the decoding key, cannot distinguish between oracle access to
+  $\mathsf{Encode}$ and an oracle that always outputs a freshly sampled
+  random string.
+
+  \item \emph{Error correction (robustness):} For any message $m$, if
+  $x \leftarrow \mathsf{Encode}(m)$ and $x'$ is a ``corrupted'' version of $x$
+  where the amount of corruption is bounded, then
+  $\mathsf{Decode}(x') = m$.
 \end{itemize}
 
+Pseudorandomness and Error-correction are properties that tend to be in direct concflict. Without the secret key, the output must look completely unstructured. With the secret key, the output must look structured enough to allow for robust error-correction. One of the main contributions of \citep{CG24} is bypassing this tradeoff. Here, we focus on the zero-bit case, where the watermark encodes a single bit $\mathsf{b} \in \{0, 1\}$, representing whether the watermark is present or not present in the output. 
+The essential idea is to use a Low Density Parity Check (LDPC) code for error correction, and pair it with a parity based assumption from cryptography -- Learning Parity with Noise (LPN). LDPC codes were originally introduced by Gallager and shown to be capacity achieving for different symmetric channels. In \citep{CG24}, due to the need for pseudorandomness and undetectibility via the LPN assumption, their parity check matrices employ higher density and thus necessitate different decoding techniques than the typical belief propogation for LDPC codes.
+
+The LPN assumption states that noisy samples from the codespace of a random linear code are pseudorandom, even to an adversary who knows a generator matrix for the
+code. In more detail, let $n, g$ be integers and let
+$G \leftarrow \mathbb{F}_2^{n \times g}$ be a random matrix. The LPN assumption
+(with noise rate $\eta$ and secrets of size $g$) states that
+\[
+(G, Gs \oplus e) \approx (G, u),
+\]
+where $s \leftarrow \mathbb{F}_2^g$, $e \leftarrow \mathrm{Ber}(n,\eta)$, and
+$u \leftarrow \mathbb{F}_2^n$.
+
+However, under the LPN, the output is indistinguishable even given $G$, i.e. there is nothing we can use as a secret key to distinguish the two outputs. We need something that can \textit{detect} when a codeword is not randomly generated. For this, we turn to LDPC codes. That is, instead of sampling $G$ uniformly at random, we first sample a
+\emph{parity-check matrix} $P \in \mathbb{F}_2^{r \times n}$ subject to each row being $t$-sparse, where $r$ is the number of parity checks. Then we sample $G \in \mathbb{F}_2^{n \times g}$ subject to $PG = 0$. 
+
+For appropriate choices of $n, g, t, r$, it can be shown that the resulting marginal distribution on $G$ is random or pseudorandom \citep{CG24}. The pseudorandomess of $G$ will allow us to apply the LPN assumption, so that the outputs look indistinguishable from random to any adversary. The parity check matrix $P$ will allow us to efficiently detect near-codewords.
+
+\begin{enumerate}
+    \item Sample a random matrix $P\in\mathbb{F}_2^{r\times n}$ subject to every row of $P$ being $t$-sparse.
+    \item Sample a random matrix $G\in\mathbb{F}_2^{n\times g}$ subject to $PG=0$.
+    \item Output $(P,G)$.
+\end{enumerate}
+The corresponding encoding function is
+\begin{align*}
+    \text{Encode}_G(1):\; \text{Sample }s\leftarrow\mathbb{F}_2^g \text{ and } e\leftarrow \mathrm{Bernoulli(n,\eta)}\text{. Output }Gs\oplus e.
+\end{align*}
 
 
-\subsection{Undetectable Watermarks}
-
-\subsubsection{Pseudorandom Codes}
-
-Pseudorandomness refers to the 
 
 
 
-Undetectability \cite{CGZ23} is strong \textit{quality} guarantee on the output of a watermarking scheme. Informally, It states that any distribution of watermarked outputs is computationally indistinguishable from a distribution of un-watermarked outputs of the model. This ensures that there is no degradation that can be detected by humans\esha{needs more evidence} or computers. \esha{how would this relate to the perceptual budget idea presented in info theory context?}. A Pseudorandom Code (PRC) \cite{CG24} is an encryption scheme with two properties. First, Pseudorandom encryption, states that for an \esha{add properties informal definitions}.
 
-The PRC watermark recently proposed by \cite{gunn2025undetectable}, works by embedding such a PRC into the initial latent for a diffusion model. Then, errors are introduced via both the adversarial channel, and the approximate inversion process. The recovered code is detected using the PRC detection algorithm. \esha{concrete differences in function between detect and decode - comes from the fact that error-correction is harder than error-detection?} \esha{actually give the algorithm? or make a flowchart}
+% where $\eta$ is a some noise rate that ensures $(G,Gs\oplus e)\approx(G,u)$ for $u\leftarrow\mathbb{F}_2^n$. The purpose of the additional Bernoulli noise is to ensure that the linear random samples follow approximately the same distribution as a completely random sample $u$, thus ensuring pseudorandomness. Under this construction, the public key becomes $G$ whereas $P$ makes decoding computationally feasible. The key idea behind decoding is that because of pseudorandomness, 
 
+% $d(Px,0)\approx r/2$. However, given the message $y\in \mathbb{F}_2^g$, we encode via $x=Gy \in\text{Null}(P)$. Then even if $x$ undergoes some limited amount of corruptions,
 
-PRC watermarking embed works by embedding a code directly in the initial latent of a model's sampling process in such a way that the latent is still Gaussian, resulting in a sample that is still in distribution and thus has no loss in generative quality \citep{gunn2025undetectable}. 
+Zero-bit decoding works by counting the number of satisfied parity checks, and checking if they are over some threshold. We expect that for $u \leftarrow {F}_2^n$, then $d(Pu,0) \approx r/2$. For a message $s$ encoded as $x=Gs \oplus e$, even after corruptions we should expect it will have small Hamming distance from $\text{Range}(G)$ so that $d(Px,0)<r/2$ (the noise $e$ is usually set to be small).
 
+The corresponding decoding function which bounds the number of unsatisifed parity checks is derived in \citep{CG24} as:
 
-\esha{I wouldn't be certain about this one - needs checking(Pseudorandom codes are by all intents and purposes random? also thought - P= BPP possibly is still open - not sure if relevant)} Therefore, these watermarks create tradeoffs in sample diversity rather than quality, whereas ad-hoc schemes make tradeoffs in quality rather than sample diversity.
+\begin{align*}
+    \text{Decode}_P(x):\; ||Px)||_0<(1/2-r^{-1/4})\cdot r, \text{ output }1\text{; otherwise output}\perp.
+\end{align*}
+The paper determines that with constant noise rate, the sparsity of the parity check matrix must be $t=O(\log r)$ to ensure decoding succeeds with high probability (i.e bound the number of satisfied parity checks to be close to $r$). Furthermore, $r=n^{\Omega(1)}$ so $t=O(\log n)$.
 
+While LDPC codes typically utilize very small constant sparsity $t<<n$\citep{borwankar2020lowdensityparitycheck}, however, to ensure the pseudorandomness of $G$, the sparsity is set to $t=\Theta(\log n)$. Unfortunately, a belief propagation decoder does not work for noise rates beyond $O(\log t/t)$ according to \citep{CG24} which is why the simple parity check decoding is used.
+
+In \citep{gunn2025undetectable}, the decoding function is modified to optimize for images by using a softmax function instead of bit strings, and giving more weight to values with higher magnitude. In addition, they use a constant $t = 3$, which means that the scheme is not practically undetectable against motivated adversaries. However, it is still undetectable in practice, as shown by the undetectibility discussion in the next section. 
+
+Now that we have described the general PRC structure, we explain how it was proposed for injection in the initial Gaussian latent of a generative model. The signs of a Gaussian are randomly distributed in $\{+1,-1\}$ so we can simply replace the signs of the initial latent with the bits in the code. In particular, given a PRC $c\in\{0,1\}^n$ and an initial Gaussian latent $x\sim \mathcal{N}(0,I_n)$, we define the new Gaussian latent as
+\begin{align*}
+    \hat{x}=(2c-1)\odot|x|
+\end{align*}
+Importantly, because of the pseudorandomness of $c$, we can assume $\hat{x}\sim \mathcal{N}(0,I_n)$.
 
 \subsection{Robustness of PRC}
 \begin{itemize}
     \item \textbf{Pixel-level Attacks}: The PRC paper shows that the watermark is robust to especially pixel-level attacks \citep{gunn2025undetectable}. These attacks include photometric distortions such as contrast adjustments and degradation distortions such as noise and compression. For these attacks, PRC performed similarly to the Tree-ring watermark and slightly worse than the Gaussian shading watermark.
-    \item \textbf{Regeneration Attacks}: Regeneration attacks are a family of attacks which use the diffusion process to naturally remove the watermark. This method alters an image's latent representation using the generative model architecture \citep{zhao2024invisibleimagewatermarksprovably}. The PRC paper implemented two attacks of this kind: diffusion model-based and VAE-based attacks. The diffusion attacks add Gaussian noise to the latent and then execute additional denoising steps. The VAE attacks use pretrained autoencoders to compress the images. PRC performs worse than Tree-ring and Gaussian shading for these evaluations. Importantly, these attacks retain the semantic quality of the original images and are particularly harmful to pixel-level watermarks \citep{zhao2024invisibleimagewatermarksprovably}. The PRC is embedded directly in the latent without any additional transformation, unlike Tree-ring, so the PRC paper's claim that "the watermark operates at a semantic level" may not be entirely true. Its vulnerability to these attacks as well as the structure preservation of VAE architectures, as will be discussed later in this report, indicate that PRC is embedded more closely to the pixel-level and thus has areas for future improvement.
-    \item \textbf{Undetectability}: An immense strength of PRC is its undetectability. To establish this empirically, the PRC paper trained a neural network model to detect a watermark without the key \citep{gunn2025undetectable}. The model was trained on techniques including Tree-ring, Gaussian Shading, and PRC. PRC was the only technique that the model could not learn to detect the watermark. Thus, while Gaussian Shading is generally more robust to the previously described attacks, it decreases sample diversity significantly and is in fact more detectable than PRC. This is likely because all images generated via Gaussian Shading correspond to a similar Gaussian quadrant which is learnable whereas the PRC, within a limited adversarial compute budget, still appears to be completely Gaussian.
+    \item \textbf{Regeneration Attacks}: Regeneration attacks are a family of attacks which use the diffusion process to naturally remove the watermark. This method alters an image's latent representation using the generative model architecture \citep{zhao2024invisibleimagewatermarksprovably}. The PRC paper implemented two attacks of this kind: diffusion model-based and VAE-based attacks. The diffusion attacks add Gaussian noise to the latent of the final sample and then execute additional denoising steps. The VAE attacks use pretrained autoencoders to compress the images. PRC performs worse than Tree-ring and Gaussian shading for these evaluations. Importantly, these attacks retain the semantic quality of the original images and are particularly harmful to pixel-level watermarks \citep{zhao2024invisibleimagewatermarksprovably}. The PRC is embedded directly in the latent without any additional transformation, unlike Tree-ring, so the PRC paper's claim that "the watermark operates at a semantic level" may not be entirely true. Its vulnerability to these attacks as well as the structure preservation of VAE architectures, as will be discussed later in this report, indicate that PRC is embedded more closely to the pixel-level and thus has areas for future improvement to be embedded in the semantic-level.
+    \item \textbf{Undetectability}: An immense strength of PRC is its undetectability. To establish this empirically, the PRC paper trained a neural network model to detect a watermark without the key \citep{gunn2025undetectable}. The model was trained on techniques including Tree-ring, Gaussian Shading, and PRC. PRC was the only technique that the model could not learn to detect the watermark. Thus, while Gaussian Shading is generally more robust to the previously described attacks, it decreases sample diversity significantly and is in fact more detectable than PRC. This is likely because all images generated via Gaussian Shading correspond to a similar Gaussian quadrant which is learnable whereas the PRC, within a limited adversarial compute budget, still functions as a random Gaussian.
 \end{itemize}
 
 \subsection{Motivation of PRC Video Integration}
 PRC has been shown to have potential for image watermarking so we investigate if the code can be extended successfully to videos. In particular, we evaluate the temporal robustness of this watermark. Open Sora uses a single multi-dimensional Gaussian latent just like Stable Diffusion, so we can apply the exact same method of embedding the code as before. However, why even embed the watermark across the entire latent rather instead of embedding a copy in every frame? If we instead embed a watermark in every frame then we should be more robust to temporal attacks. This is comparable to why we might embed a PRC watermark across an entire image rather than embedding several watermark copies in different regions of an image. The answer is capacity. A larger latent space allows for larger capacity for a message. The additional temporal dimension of the video latent means we have a higher watermarking capacity. This introduces a new tradeoff between robustness to temporal attacks and capacity. We may not want to embed a single watermark in an entire movie, however we may not want to embed it in every latent either. This is especially relevant to the more recent video generation model Wan which generates frames in chunks instead of one single video like Open Sora \citep{wen2023treeringwatermarksfingerprintsdiffusion}. One could embed a watermark into the latents that generate chunks of frames so that higher capacity than single frame watermarking is achieved while also being robust to more extreme temporal attacks. For our experiments, we explore both embedding one code across the whole latent and embedding copies of the same code in every latent to evaluate a possible tradeoff.
+
+
+
+
+% \subsection{Undetectable Watermarks}
+
+% \subsubsection{Pseudorandom Codes}
+
+% Pseudorandomness refers to the 
+
+
+
+% Undetectability \citep{CGZ23} is strong \textit{quality} guarantee on the output of a watermarking scheme. Informally, It states that any distribution of watermarked outputs is computationally indistinguishable from a distribution of un-watermarked outputs of the model. This ensures that there is no degradation that can be detected by humans\esha{needs more evidence} or computers. \esha{how would this relate to the perceptual budget idea presented in info theory context?}. A Pseudorandom Code (PRC) \citep{CG24} is an encryption scheme with two properties. First, Pseudorandom encryption, states that for an \esha{add properties informal definitions}.
+
+% The PRC watermark recently proposed by \citep{gunn2025undetectable}, works by embedding such a PRC into the initial latent for a diffusion model. Then, errors are introduced via both the adversarial channel, and the approximate inversion process. The recovered code is detected using the PRC detection algorithm. \esha{concrete differences in function between detect and decode - comes from the fact that error-correction is harder than error-detection?} \esha{actually give the algorithm? or make a flowchart}
+
+
+% PRC watermarking embed works by embedding a code directly in the initial latent of a model's sampling process in such a way that the latent is still Gaussian, resulting in a sample that is still in distribution and thus has no loss in generative quality \citep{gunn2025undetectable}. 
+
+
+% \esha{I wouldn't be certain about this one - needs checking(Pseudorandom codes are by all intents and purposes random? also thought - P= BPP possibly is still open - not sure if relevant)} Therefore, these watermarks create tradeoffs in sample diversity rather than quality, whereas ad-hoc schemes make tradeoffs in quality rather than sample diversity.
