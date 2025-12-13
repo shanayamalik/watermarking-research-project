@@ -41,6 +41,7 @@
 \usepackage{ifthen}
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{threeparttable}
 \usepackage{amssymb}
@@ -101,19 +102,15 @@ However, while watermarking has been studied extensively for language and image 
 \end{abstract}
 
 \section{Introduction}
-The rapid proliferation of generative artificial intelligence has fundamentally transformed the digital media landscape. While initial breakthroughs focused on text and images, recent advancements have enabled the creation of high-fidelity synthetic video content that is increasingly becoming indistinguishable from real videos. Proprietary and open sourced models alike have demonstrated the ability to generate complex scenes with eerily realistic temporal consistency and camera motion, which will only improve as time goes on. However, this democratized capability comes with significant societal risks. The ease of generating hyper-realistic deepfakes threatens to accelerate the spread of misinformation and complicate copyright enforcement. Consequently, establishing reliable provenance has become an urgent technical priority. 
+% The rapid proliferation of generative artificial intelligence has fundamentally transformed the digital media landscape. While initial breakthroughs focused on text and images, recent advancements have enabled the creation of high-fidelity synthetic video content that is increasingly becoming indistinguishable from real videos. Proprietary and open sourced models alike have demonstrated the ability to generate complex scenes with eerily realistic temporal consistency and camera motion, which will only improve as time goes on. However, this democratized capability comes with significant societal risks. The ease of generating hyper-realistic deepfakes threatens to accelerate the spread of misinformation and complicate copyright enforcement. Consequently, establishing reliable provenance has become an urgent technical priority. 
 
-To address these risks, a new paradigm of watermark has emerged: generative watermarking. Instead of embedding watermarks post hoc, generative watermarking seeks to embed a statistical signal directly into the video creation process by treating it as a communication channel, creating more robust and imperceptible watermarks that are more persistent compared to classical schemes.
-
-While watermarking static images has been well studied in the past few years, with relatively robust solutions for different types of spatial attacks, video watermarking remains significantly underexplored due to its novelty. It is important to note that videos are not just a sequence of independent images, but rather possess a temporal dimension that introduces a new class of adversarial attacks. In real-world pipelines, videos are frequently subjected to \textit{temporal desynchronization}: they may be clipped to shorter durations, subjected to frame dropping during streaming (packet loss), or subsampled to lower frame rates. For a watermarking system to be practical, it must be robust to these temporal distortions without requiring the detector to have access to meta-information such as which frames were removed.
-
-In this work, we address the challenge of robust video watermarking by extending the PRC watermark \citep{gunn2025undetectable} to the spatio-temporal domain. Using the Open Sora 1.3 architecture as our testbed, we demonstrate that naive extensions of image-based watermarking schemes fail catastrophically under temporal attacks and that a more careful construction is needed to achieve temporal robustness.
+To address the risks of AI content, a new paradigm of watermark has emerged: generative watermarking. Instead of embedding watermarks post hoc, generative watermarking seeks to embed a statistical signal directly into the video creation process by treating it as a communication channel, creating more robust and imperceptible watermarks that are more persistent compared to classical schemes. While watermarking static images has been well studied in the past few years, with relatively robust solutions for different types of spatial attacks, video watermarking remains significantly underexplored due to its novelty. Videos possess a temporal dimension that introduces a new class of adversarial attacks. In real-world pipelines, videos are frequently subjected to \textit{temporal desynchronization}: they may be clipped to shorter durations, subjected to frame dropping during streaming (packet loss), or subsampled to lower frame rates. For a watermarking system to be practical, it must be robust to these temporal distortions without requiring the detector to have access to meta-information such as which frames were removed. In this work, we address the challenge of robust video watermarking by extending the PRC watermark \citep{gunn2025undetectable} to the spatio-temporal domain. Using the Open Sora 1.3 architecture as our testbed, we demonstrate that naive extensions of image-based watermarking schemes fail catastrophically under temporal attacks and that a more careful construction is needed to achieve temporal robustness.
 
 Our contributions are as follows:
 \begin{itemize}
 \item \textbf{Spatial Robustness Baseline}: We extend the evaluation of the PRC watermark for images under geometric attacks not covered in the original work, establishing a critical baseline for understanding the synchronization sensitivity that subsequently guides our video analysis.
 \item \textbf{Evaluation of Natural Spatio-temporal Extension}: We formulate a natural extension of the PRC watermark from 2D spatial latents to 3D spatio-temporal latents. While we validate its imperceptibility using the VBench benchmark, we demonstrate that this naive approach is extremely brittle, failing catastrophically under even minor temporal shifts due to the strict index-dependency of the 3D key.
-\item \textbf{Analysis of Temporal Broadcasting & Phase Mismatch}: To address this brittleness, we investigate "Temporal Broadcasting" (redundancy over time). We identify a critical "Phase Mismatch" vulnerability where this strategy still fails under front-clipping attacks. We show this occurs because removing frames shifts the alignment of physical pixels relative to the model's fixed latent compression blocks (typically 4:1), scrambling the embedded signal.
+\item \textbf{Analysis of Temporal Broadcasting \& Phase Mismatch}: To address this brittleness, we investigate "Temporal Broadcasting" (redundancy over time). We identify a critical "Phase Mismatch" vulnerability where this strategy still fails under front-clipping attacks. We show this occurs because removing frames shifts the alignment of physical pixels relative to the model's fixed latent compression blocks (typically 4:1), scrambling the embedded signal.
 \item \textbf{Modulo-4 Alignment Strategy}: We propose a robust detection protocol that resolves these synchronization issues by cycling through temporal phase shifts during extraction. We show that this strategy recovers the watermark under severe attacks, maintaining detectability even with $>55\%$ video removal or stochastic frame dropping with probability up to $p=0.75$.
 \item \textbf{Discovery of the "Anchor Effect"}: We characterize the fundamental operating limits of our method, specifically identifying the "Anchor Effect" under subsampling attacks. We demonstrate that detection in subsampled videos is largely an artifact of the model's initialization, relying strictly on the presence of the very first physical frame to preserve the watermark signal.
 \end{itemize}
@@ -132,8 +129,8 @@ Our contributions are as follows:
 % \subsection{Background Watermarking Techniques}
 Watermarking can be viewed as a communication problem: an encoder embeds a signal into content, an adversary applies a channel transformation (e.g., compression, cropping, re-encoding), and a decoder attempts detection or message recovery. A useful way to organize prior work is therefore not only by algorithmic construction, but by \emph{where} the watermark is embedded (pixel space, transform space, or model latent space) and \emph{which distortions} it is designed to survive.
 
-\paragraph{Why include classical baselines?}
-Classical post-hoc watermarking serves as an important reference point for this work. First, it represents the standard setting where a watermark is added \emph{after} content generation, without access to the generative process itself. Second, it exposes a recurring vulnerability that becomes even more pronounced in video: \emph{desynchronization}. Attacks that delete, shift, rotate, or resample content often break coordinate alignment, which is frequently more damaging than additive noise and motivates model-native alternatives.
+% \paragraph{Why include classical baselines?}
+% Classical post-hoc watermarking serves as an important reference point for this work. First, it represents the standard setting where a watermark is added \emph{after} content generation, without access to the generative process itself. Second, it exposes a recurring vulnerability that becomes even more pronounced in video: \emph{desynchronization}. Attacks that delete, shift, rotate, or resample content often break coordinate alignment, which is frequently more damaging than additive noise and motivates model-native alternatives.
 
 \paragraph{Post-hoc watermarking (pixel and transform domains).}
 We consider representative classical watermarking techniques that operate directly on generated samples:
@@ -146,7 +143,7 @@ We consider representative classical watermarking techniques that operate direct
 \end{itemize}
 
 \paragraph{Generative watermarking (model-native embedding).}
-Recent work moves watermarking upstream into the sampling process of diffusion and flow-matching models by modifying the initial Gaussian latent. This reframes watermarking as a distribution-level property of the generator rather than a fragile post-hoc overlay.
+Recent work moves watermarking upstream into the sampling process of diffusion and flow-matching models by modifying the initial Gaussian latent. 
 \begin{itemize}
     \item \textbf{Tree-Ring Watermarking.}
     Tree-ring watermarking injects a circular band into the frequency domain of the initial latent, typically concentrating energy in higher frequencies to preserve perceptual quality. It demonstrates strong empirical robustness in image diffusion models \citep{wen2023treeringwatermarksfingerprintsdiffusion}.
@@ -161,27 +158,27 @@ Recent work moves watermarking upstream into the sampling process of diffusion a
 \paragraph{Summary and motivation.}
 Classical post-hoc schemes degrade rapidly once the adversarial channel includes strong desynchronization, while generative watermarking gains leverage by embedding signals at the model’s natural initialization point. This distinction motivates our focus on PRC, which we evaluate across aggressive spatial and temporal attacks to characterize its operating limits and recovery strategies in both image and video generation models.
 
-\begin{table}[h]
-    \centering
-    \begin{threeparttable}
-        \begin{tabular}{lccc}
-            \toprule
-            \textbf{Method} & \textbf{Embedding Domain} & \textbf{Strength} & \textbf{Primary Failure Mode} \\
-            \midrule
-            LSB & Pixel space & High capacity, simple & Compression / mild filtering \\
-            DFT & Frequency space & Better post-processing  robustness & Severe desynchronization \\
-            Tree-Ring & Gen.\ latent (freq.) & Strong image robustness & Model / attack specificity \\
-            Gaussian-Shading & Gen.\ latent (distribution bias) & Robust initialization & Diversity degradation \\
-            PRC & Gen.\ latent (pseudorandom) & Fidelity + detectability & Spatial / temporal misalignment \\
-            \bottomrule
-        \end{tabular}
-    \end{threeparttable}
+% \begin{table}[h]
+%     \centering
+%     \begin{threeparttable}
+%         \begin{tabular}{lccc}
+%             \toprule
+%             \textbf{Method} & \textbf{Embedding Domain} & \textbf{Strength} & \textbf{Primary Failure Mode} \\
+%             \midrule
+%             LSB & Pixel space & High capacity, simple & Compression / mild filtering \\
+%             DFT & Frequency space & Better post-processing  robustness & Severe desynchronization \\
+%             Tree-Ring & Gen.\ latent (freq.) & Strong image robustness & Model / attack specificity \\
+%             Gaussian-Shading & Gen.\ latent (distribution bias) & Robust initialization & Diversity degradation \\
+%             PRC & Gen.\ latent (pseudorandom) & Fidelity + detectability & Spatial / temporal misalignment \\
+%             \bottomrule
+%         \end{tabular}
+%     \end{threeparttable}
 
-    \vspace{2mm}
-    \caption{\textbf{Watermarking baselines and typical failure modes.}
-    The key distinction is post-hoc (pixel or transform domain) versus model-native (latent) embedding.}
-    \label{tab:wm_baselines}
-\end{table}
+%     \vspace{2mm}
+%     \caption{\textbf{Watermarking baselines and typical failure modes.}
+%     The key distinction is post-hoc (pixel or transform domain) versus model-native (latent) embedding.}
+%     \label{tab:wm_baselines}
+% \end{table}
 
 % Traditional ad-hoc methods such as LSB and DFT treat a sample image as a static asset. While universally applicable, they are often vulnerable to removal. For instance, a simple Gaussian blur or re-encoding can destroy an LSB watermark. Furthermore, they do not exploit the generative priors of the model. Embedding watermarks directly into the generative process (e.g., within the latent space of a Stable Diffusion model) offers distinct advantages:
 % \begin{enumerate}
@@ -239,9 +236,7 @@ Like DDIM, there are accuracy concerns with this inversion since it is still an 
 but this is computationally more demanding as it will require multiple fixed point iterations. This method has been used for image editing which requires higher accuracy inversion \citep{xu2025unveilinversioninvarianceflow}, however, like with DDIM, we found that an approximate inversion is sufficient for extracting the watermark.
 
 \subsection{Consequences of Approximate Inversions}
-It is important to acknowledge an additional challenge of injecting a watermark into the initial latent of a generative model: the inverse process to predict the initial latent can in itself degrade the watermark, even without any attacks on the original sample. The inverse processes for Stable Diffusion and Open Sora, while slightly different, are both approximations and accumulate error.
-
-Let $X$ be the watermarked image, $Y$ be the attacked image, and $f(Y)$ be the predicted noise latent from the attacked image. We can view the errors introduced by $f$ as just additional image attacks. Then $X-Y-f(Y)$ form a Markov Chain. By the Data Processing Inequality, $I(X,f(Y))\leq I(X, Y)$. It follows that the capacity of a watermark extracted from the approximate inverted latent representation $f(Y)$ is upper bounded by the capacity of a watermark extracted directly from $Y$. Thus, if $f$ is not a bijection, we will theoretically have lower watermark capacity by embedding it into the initial Gaussian latent. Even still, generative watermarking is appealing because the initial latent Gaussian distribution creates a great opportunity for elegant schemes with much less impact on visual quality and yet also more robustness than many common ad-hoc methods.
+It is important to acknowledge an additional challenge of injecting a watermark into the initial latent of a generative model: the inverse process to predict the initial latent can in itself degrade the watermark, even without any attacks on the original sample. The inverse processes for Stable Diffusion and Open Sora, while slightly different, are both approximations and accumulate error. Consider a watermarked image $X$, an attacked image $Y$ and the predicted noise latent $f(Y)$. We can view the errors introduced by $f$ as simply additional image attacks. Then $X-Y-f(Y)$ form a Markov Chain. By the Data Processing Inequality, $I(X,f(Y))\leq I(X, Y)$. It follows that the capacity of a watermark extracted from the approximate inverted latent representation $f(Y)$ is upper bounded by the capacity of a watermark extracted directly from $Y$. Thus, if $f$ is not a bijection, we will have lower watermark capacity by embedding it into the initial Gaussian latent. Even still, generative watermarking is appealing because the initial latent Gaussian distribution creates a great opportunity for elegant schemes with much less impact on visual quality and yet also more robustness than many common ad-hoc methods.
 
 \input{prc-overview}
 
@@ -281,10 +276,10 @@ We evaluate masked cropping and rotation attacks that simulate common post-proce
 \end{table}
 
 \paragraph{Discussion}
-Across cropping attacks, we observe a consistent two-stage failure mode in which decoding fails before detection, characteristic of deletion-channel behavior. Rotations cause immediate failure due to complete spatial misalignment. These image-based failure modes closely parallel the temporal desynchronization effects observed in the video domain, motivating our subsequent analysis of PRC under temporal attacks in Open Sora 1.3.
+Across cropping attacks, we observe a consistent failure mode in which decoding fails before detection. This is expected since detection just checks if the codeword came from the pseudorandom distribution whereas decoding is the hard task requiring the retrieval of the original message. Rotations cause immediate failure due to complete spatial misalignment which results in code misalignment as well. These image-based failure modes closely parallel the temporal desynchronization effects observed in the video domain, motivating our subsequent analysis of PRC under temporal attacks in Open Sora 1.3.
 
 \subsection{Open Sora 1.3}
-Following the above, we extend the PRC watermark to the video domain using Open Sora 1.3, a high-fidelity, open-source model for text-to-video generation. We approached this problem through three iterative implementations, moving from a naive theoretical extension to a more practical solution.
+Following the above, we extend the PRC watermark to the video domain using Open Sora 1.3. We approached this problem through three iterative implementations, moving from a naive theoretical extension to a more practical solution.
 
 Crucially, Open Sora 1.3 operates on a compressed spatiotemporal latent space. The model compresses temporal data such that 1 latent frame corresponds to 4 real video frames. Consequently, our watermarking key $K$ exists in the dimensions $(W \times H \times T_{latent})$, while the attacks occur on the generated video in the pixel domain ($W_{pixel} \times H_{pixel} \times T_{real}$).
 
@@ -316,85 +311,173 @@ To start, we directly extended the PRC embedding scheme from the 2D spatial late
     \label{fig:vbench}
 \end{figure}
 
-The results in Figure \ref{fig:vbench} show that the PRC watermark did not noticeably impact the generative ability of the Open Sora model. We conclude that, similar to the results shown in the original PRC paper, the distributions of the watermarked and unwatermarked Open-Sora samples remain very similar. 
+The results in Figure \ref{fig:vbench} show that the PRC watermark did not significantly impact the generative ability of the Open Sora model. We conclude that, similar to the results shown in the original PRC paper, the distributions of the watermarked and unwatermarked Open-Sora samples are reasonably similar. 
 
-\textbf{Robustness Failure.} However, while the visual quality was maintained, the temporal robustness proved to be a critical failure point. Although this native extension effectively utilizes the video model's shift-window attention and 3D positional encoding, it is extremely brittle in practice. Because the watermark is embedded in the latent space, but attacks occur in the real frame space, even minor temporal disruptions are catastrophic. For example, dropping a single real frame shifts the entire sequence, misaligning the subsequent groups of 4 real frames with their corresponding latent key slice $K_t$. The detector, expecting a perfect 4:1 alignment, fails to correlate the shifted pixels with the correct latent watermark. 
+\textbf{Robustness Failure.} While the visual quality was maintained, the temporal robustness proved to be a critical failure point. Because the watermark is embedded in the latent space, but attacks occur in the real frame space, even minor temporal disruptions are catastrophic. For example, dropping a single real frame shifts the entire sequence, misaligning the subsequent groups of 4 real frames with their corresponding latent key slice $K_t$. The results in Table \ref{tab:robustness_study} show that if we pad frames exactly where they were removed, thus keeping the original latent alignment, the scheme is still robust. This is comparable to a pixel-level attack on an image. If we don't know where frames were removed and instead pad arbitrarily then the latent structure is completely reordered, just like an image rotation. Unsurprisingly, padding in incorrect positions and rotations successfully make the PRC undecodable.
 
 \subsubsection{Attempt 2: Temporal Broadcasting}
 To address this fragility, we adopted a "Temporal Broadcasting" strategy. Instead of a unique key for every latent frame, we generate a single spatial watermark $k \in \mathbb{R}^{W \times H}$ and repeat it $T_{latent}$ times, creating a spatiotemporally redundant signal where every latent frame carries an identical watermark.
 
 Theoretically, this redundancy should render the watermark robust to any temporal cropping; since every frame carries the same watermark $k$, the detector should not require a specific temporal index to recover the signal. However, in practice, this approach fails significantly due to the decoupling of the attack domain (pixels) and the embedding domain (latents).
 
-More specifically, the core issue lies in the 4:1 temporal compression ratio of the Open Sora 1.3 autoencoder. When the watermark is embedded, it is done into latent frames, each of which is a compressed representation of 4 specific physical frames (e.g., Latent 0 represents Frames 0-3). Temporal attacks, such as clipping or frame dropping, operate on the physical frames. If an attack removes a number of frames that is not a multiple of 4 (e.g., removing the first frame), the alignment of the pixel groupings shifts. For instance, if we remove the first physical frame, the sequence [Frame 1, 2, 3, 4] is encoded instead, producing a latent vector completely distinct from the original watermarked latent generated from [Frame 0, 1, 2, 3]. Consequently, naive padding (e.g., appending black frames to the end) fails to correct this alignment, rendering the watermark undetectable under front-clipping or random frame dropping attacks.
+More specifically, the core issue lies in the 4:1 temporal compression ratio of the Open Sora 1.3 autoencoder. When the watermark is embedded, it is placed via latent frames, each of which is a compressed representation of 4 specific physical frames (e.g., Latent 0 represents Frames 0-3). Temporal attacks, such as clipping or frame dropping, operate on the physical frames. If an attack removes a number of frames that is not a multiple of 4 (e.g., removing the first frame), the alignment of the pixel groupings shifts. For instance, if we remove the first physical frame, the sequence [Frame 1, 2, 3, 4] is encoded instead, producing a latent vector completely distinct from the original watermarked latent generated from [Frame 0, 1, 2, 3]. Consequently, naive padding (e.g., appending black frames to the end) fails to correct this alignment, rendering the watermark undetectable under front-clipping or random frame dropping attacks.
 
 Additionally, we observed that subsampling attacks (e.g., retaining every 4th frame) lead to a near-total collapse of detection. This is expected behavior: since the Open Sora 1.3 encoder requires 4 consecutive physical frames to construct a single valid latent representation, feeding it disjoint frames (e.g., frames 0, 4, 8, 12) deprives the encoder of 75\% of the required temporal information. The resulting latent vectors are heavily distorted, destroying the watermark signal.
 
-Interestingly, we found that the first latent frame remained detectable even under severe subsampling. This suggests that while temporal aliasing destroys the watermark signal in subsequent latents, the initial latent frame—acting as a sequence anchor—preserves enough spatial fidelity to trigger detection. This hypothesis is further supported by our finding that removing just the first physical frame (Frame 0) prior to subsampling eliminates this residual detection entirely. This indicates that the watermark's survival is not merely a property of the first latent block, but is strictly contingent on the presence of the very first physical frame, likely due to the autoencoder's initialization.
+Interestingly, we found that the first latent frame remained detectable even under severe subsampling. This suggests that while temporal aliasing destroys the watermark signal in subsequent latents, the initial latent frame acts as a sequence anchor and preserves enough spatial fidelity to allow for detection. This hypothesis is further supported by our finding that removing just the first physical frame (Frame 0) prior to subsampling eliminates detection entirely. This indicates that the watermark's survival is not merely a property of the first latent block, but is strictly contingent on the presence of the very first physical frame, likely due to the autoencoder's initialization.
 
 \subsubsection{Attempt 2.5: Modulo-4 Alignment Strategy}
-The failure of Attempt 2 (summarized in Table \ref{tab:ablation_study}) clarified that simply repeating the key is insufficient; the phase of the real-to-latent compression also matters. Because Open Sora 1.3 encodes video with a ratio of 4 real frames to 1 latent frame, a temporal shift/crop that is not a multiple of 4 disrupts the latent representation of the watermark. 
+The failure of Attempt 2 (summarized in Table~\ref{tab:robustness_study}) clarified that simply repeating the key is insufficient; the phase of the real-to-latent compression also matters. Because Open Sora 1.3 encodes videos with a ratio of 4 real frames to 1 latent frame, a temporal shift/crop that is not a multiple of 4 disrupts the latent representation of the watermark. 
 
-To solve this, we implemented the \textbf{Modulo-4 Alignment Strategy}. Instead of a single padding configuration, our detector evaluates four distinct temporal alignments. We shift the incoming real video frames by an offset $i \in \{0, 1, 2, 3\}$ before encoding them back into the latent space (and padding the remainder). By cycling through these "groups of 4," we ensure that at least one configuration correctly aligns the real frames to the latent used during generation.
+To solve this, we implemented the \textbf{Modulo-4 Alignment Strategy}. Instead of a single padding configuration, our detector evaluates four distinct temporal alignments. We shift the incoming real video frames by an offset $i \in \{0, 1, 2, 3\}$ before encoding them back into the latent space (and padding the remainder). By cycling through these ``groups of 4,'' we ensure that at least one configuration correctly aligns the real frames to the latent used during generation.
 
-This refined strategy successfully mitigates the synchronization errors observed in previous attempts. As shown in Table \ref{tab:ablation_study}, Attempt 2.5 achieves broad robustness across all attack vectors where Attempt 2 failed. We further quantify the precise operating limits of our method in Table \ref{tab:stress_test}, demonstrating that the watermark remains reliably detectable even when over 55\% of the video content is removed or when frames are dropped with a probability of $p=0.75$.
+This refined strategy successfully mitigates the synchronization errors observed in previous attempts. As shown in Table~\ref{tab:robustness_study}, Attempt~2.5 achieves broad robustness across all attack vectors where Attempt~2 failed. We further quantify the precise operating limits of our method in Table~\ref{tab:operating_limits}, demonstrating that the watermark remains reliably detectable even when over $55\%$ of the video content is removed or when frames are dropped with a probability of $p=0.75$.
+
+% \begin{table}[h]
+%     \centering
+%     \begin{threeparttable}
+%         \begin{tabular}{lcc}
+%             \toprule
+%             \textbf{Temporal Attack} & \textbf{Decodable Limit} & \textbf{Detectable Limit} \\
+%             \midrule
+%             \textbf{Boundary Clipping} & & \\
+%             \hspace{3mm} \% Video Removed & $< 35\%$ removed & $< 55\%$ removed \\
+%             \midrule
+%             \textbf{Frame Dropping} & & \\
+%             \hspace{3mm} Drop Probability ($p$) & $p < 0.75$ & $p < 0.75$ \\
+%             \midrule
+%             \textbf{Subsampling} & & \\
+%             \hspace{3mm} Max Factor ($k$) & Tested up to $5\times$\textsuperscript{*} & Tested up to $5\times$\textsuperscript{*} \\
+%             \bottomrule
+%         \end{tabular}
+%         \begin{tablenotes}
+%             \small
+%             \item \textsuperscript{*} See Table~\ref{tab:ablation_study} for architectural caveats regarding subsampling.
+%         \end{tablenotes}
+%     \end{threeparttable}
+%     \caption{\textbf{Operating Limits of Attempt 2.5 (Modulo-4 Alignment).}}
+% \end{table}
+
+% \begin{table}[h]
+%     \centering
+%     \begin{threeparttable}
+%         \begin{tabular}{lcccc}
+%             \toprule
+%             & \multicolumn{2}{c}{\textbf{Attempt 1: Native 3D}} & \textbf{Attempt 2} & \textbf{Attempt 2.5 (Ours)} \\
+%             \cmidrule(lr){2-3} \cmidrule(lr){4-4} \cmidrule(lr){5-5}
+%             \textbf{Attack Type} & \textit{Pad End} & \textit{Pad Front} & \textit{Pad End} & \textbf{Modulo-4 Align} \\
+%             \midrule
+%             \textbf{Boundary Clipping} & & & & \\
+%             \hspace{3mm} Clip End (Back) & \cmark & \xmark & \cmark & \cmark \\
+%             \hspace{3mm} Clip Start (Front) & \xmark & \cmark & \textbf{$\sim$}\textsuperscript{$\dagger$} & \cmark \\
+%             \midrule
+%             \textbf{Temporal Sampling} & & & & \\
+%             \hspace{3mm} Frame Dropping & \xmark & \xmark & \cmark & \cmark \\
+%             \hspace{3mm} Subsampling & \xmark & \xmark & \textbf{$\sim$}\textsuperscript{*} & \textbf{$\sim$}\textsuperscript{*} \\
+%             \bottomrule
+%         \end{tabular}
+%         \begin{tablenotes}
+%           \small
+%           \item \cmark = Robust \quad \xmark = Fail \quad \textbf{$\sim$} = Conditional Success
+%           \item \textsuperscript{$\dagger$} \textbf{Phase Mismatch:} Only detectable if $L \equiv T \pmod 4$
+%           \item \textsuperscript{*} \textbf{Anchor Effect:} Detection confined to the first latent frame
+%         \end{tablenotes}
+%         \caption{\textbf{Robustness Ablation Study.}}
+%         \label{tab:ablation_study}
+%     \end{threeparttable}
+% \end{table}
 
 \begin{table}[h]
     \centering
-    \begin{threeparttable}
-        \begin{tabular}{lcc}
-            \toprule
-            \textbf{Temporal Attack} & \textbf{Decodable Limit} & \textbf{Detectable Limit} \\
-            \midrule
-            \textbf{Boundary Clipping} & & \\
-            \hspace{3mm} \% Video Removed & $< 35\%$ removed & $< 55\%$ removed \\
-            \midrule
-            \textbf{Frame Dropping} & & \\
-            \hspace{3mm} Drop Probability ($p$) & $p < 0.75$ & $p < 0.75$ \\
-            \midrule
-            \textbf{Subsampling} & & \\
-            \hspace{3mm} Max Factor ($k$) & Tested up to $5\times$\textsuperscript{*} & Tested up to $5\times$\textsuperscript{*} \\
-            \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
-            \small
-            \item \textsuperscript{*} See Table \ref{tab:ablation_study} for architectural caveats regarding subsampling.
-        \end{tablenotes}
-    \end{threeparttable}
-    \vspace{2mm}
-    \caption{\textbf{Operating Limits of Attempt 2.5 (Modulo-4 Alignment).} We evaluate the breakdown point of our proposed method under severe temporal distortion. The watermark remains reliably detectable even when over half the video is removed.}
-    \label{tab:stress_test}
+    \begin{minipage}[t]{0.38\textwidth}
+        \centering
+        \begin{threeparttable}
+            \footnotesize
+            \caption{\textbf{Operating Limits}}
+            \label{tab:operating_limits}
+            \begin{tabular}{lccc}
+                \toprule
+                 & \multicolumn{2}{c}{\textbf{Limits}} \\
+                \cmidrule(lr){2-3}
+                \textbf{Attack Type} & \textbf{Decodable} & \textbf{Detectable} \\
+                \midrule
+                \textbf{Boundary Clip} & $< 35\%$ & $< 55\%$ \\
+                \textbf{Frame Drop} & $p < 0.75$ & $p < 0.75$ \\
+                \textbf{Subsampling} & $5\times$\tnote{*} & $5\times$\tnote{*} \\
+                \bottomrule
+            \end{tabular}
+            \begin{tablenotes}
+                \scriptsize
+                \item[*] See Table III for caveats.
+            \end{tablenotes}
+        \end{threeparttable}
+    \end{minipage}
+    \hfill % Pushes the tables to the edges, but since they are wide, the gap is small
+    % Right Table: Robustness (~60% of page width)
+    \begin{minipage}[t]{0.60\textwidth}
+        \centering
+        \begin{threeparttable}
+            \footnotesize
+            \caption{\textbf{Robustness Study}}
+            \label{tab:robustness_study}
+            \setlength{\tabcolsep}{3pt} % Slight squeeze on column padding to fit full words
+            \begin{tabular}{lcccc}
+                \toprule
+                 & \multicolumn{2}{c}{\textbf{Clipping}} & \multicolumn{2}{c}{\textbf{Temporal Sampling}} \\
+                \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+                \textbf{Method} & \textbf{End} & \textbf{Front} & \textbf{Dropping} & \textbf{Subsampling} \\
+                \midrule
+                \textbf{Attempt 1: Native 3D} & & & & \\
+                \hspace{3mm}\textit{Pad End} & \cmark & \xmark & \xmark & \xmark \\
+                \hspace{3mm}\textit{Pad Front} & \xmark & \cmark & \xmark & \xmark \\
+                \midrule
+                \textbf{Attempt 2: Redundancydemis} & & & & \\
+                \hspace{3mm}\textit{Pad End} & \cmark & \textbf{$\sim$}\tnote{$\dagger$} & \cmark & \textbf{$\sim$}\tnote{*} \\
+                \midrule
+                \textbf{Attempt 2.5} & & & & \\
+                \hspace{3mm}\textbf{Modulo-4 Align} & \cmark & \cmark & \cmark & \textbf{$\sim$}\tnote{*} \\
+                \bottomrule
+            \end{tabular}
+            \begin{tablenotes}
+                \scriptsize
+                \item \cmark = Robust, \xmark = Fail, \textbf{$\sim$} = Conditional Success
+                \item[$\dagger$] Phase Mismatch: Only detectable if $L \equiv T \pmod 4$
+                \item[*] Anchor Effect: Detection confined to first latent frame
+            \end{tablenotes}
+        \end{threeparttable}
+    \end{minipage}
 \end{table}
 
-\begin{table}[h]
-    \centering
-    \begin{threeparttable}
-        % \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lcccc}
-            \toprule
-            & \multicolumn{2}{c}{\textbf{Attempt 1: Native 3D}} & \textbf{Attempt 2} & \textbf{Attempt 2.5 (Ours)} \\
-            \cmidrule(lr){2-3} \cmidrule(lr){4-4} \cmidrule(lr){5-5}
-            \textbf{Attack Type} & \textit{Pad End} & \textit{Pad Front} & \textit{Pad End} & \textbf{Modulo-4 Align} \\
-            \midrule
-            \textbf{Boundary Clipping} & & & & \\
-            \hspace{3mm} Clip End (Back) & \cmark & \xmark & \cmark & \cmark \\
-            \hspace{3mm} Clip Start (Front) & \xmark & \cmark & \textbf{$\sim$}\textsuperscript{\textdagger} & \cmark \\
-            \midrule
-            \textbf{Temporal Sampling} & & & & \\
-            \hspace{3mm} Frame Dropping & \xmark & \xmark & \cmark & \cmark \\
-            \hspace{3mm} Subsampling & \xmark & \xmark & \textbf{$\sim$}\textsuperscript{*} & \textbf{$\sim$}\textsuperscript{*} \\
-            \bottomrule
-        \end{tabular}
-        % }
-        \begin{tablenotes}
-          \small
-          \item \cmark = Robust \quad \xmark = Fail \quad \textbf{$\sim$} = Conditional Success
-          \item \textsuperscript{\textdagger} \textbf{Phase Mismatch:} Only detectable if the remaining frame count is congruent to the original length modulo 4 (i.e., $L \equiv T \pmod 4$).
-          \item \textsuperscript{*} \textbf{Anchor Effect:} Detection confined exclusively to the first latent frame
-        \end{tablenotes}
-        \caption{\textbf{Robustness Ablation Study.} Comparison of architectural failures. \textbf{Attempt 1} requires perfect index matching. \textbf{Attempt 2} suffers from phase alignment issues (front clipping). \textbf{Attempt 2.5} resolves the alignment issues, though subsampling remains limited to the first latent}
-        \label{tab:ablation_study}
-    \end{threeparttable}
-\end{table}
+% \begin{table}[h]
+% \centering
+% \begin{threeparttable}
+% \begin{tabular}{llccc}
+% \toprule
+% \textbf{Attack} & \textbf{Metric} & \textbf{Attempt 1} & \textbf{Attempt 2} & \textbf{Attempt 2.5} \\
+% \midrule
+% \multirow{2}{*}{Boundary Clipping}
+% & Decodable Limit & \xmark & $\mathbf{\sim}^{\dagger}$ & $<35\%$ removed \\
+% & Detectable Limit & \xmark & $\mathbf{\sim}^{\dagger}$ & $<55\%$ removed \\
+% \midrule
+% \multirow{2}{*}{Frame Dropping}
+% & Decodable Limit & \xmark & \cmark & $p < 0.75$ \\
+% & Detectable Limit & \xmark & \cmark & $p < 0.75$ \\
+% \midrule
+% \multirow{2}{*}{Subsampling}
+% & Decodable Limit & \xmark & $\mathbf{\sim}^{*}$ & Tested up to $5\times^{*}$ \\
+% & Detectable Limit & \xmark & $\mathbf{\sim}^{*}$ & Tested up to $5\times^{*}$ \\
+% \bottomrule
+% \end{tabular}
+% \begin{tablenotes}
+% \small
+% \item \cmark = Robust \quad \xmark = Fail \quad $\mathbf{\sim}$ = Conditional Success
+% \item[$\dagger$] \textbf{Phase Mismatch:} Only detectable if remaining frame count satisfies $L \equiv T \pmod{4}$.
+% \item[$*$] \textbf{Anchor Effect:} Detection confined exclusively to the first latent frame.
+% \end{tablenotes}
+% \end{threeparttable}
+% \caption{\textbf{Unified robustness summary under temporal attacks.}}
+% \label{tab:temporal_unified}
+% \end{table}
 
 % \begin{itemize}
 %     \item Clipping video to be shorter (beginning, end, middle, random frames)
@@ -406,20 +489,20 @@ This refined strategy successfully mitigates the synchronization errors observed
 % \end{itemize}
 % Human Eval Distinguishability (given 2 videos, 1 watermarked, 1 unwatermarked) pick the watermarked image (run across 10 videos 4 ppl, and avg)
 
-\section{Discussion}
 \subsection{Failures of PRC}
-While we have shown that the technique of PRC in images can extended to videos, we find that this natural extension is not sufficient for withstanding temporal attacks. Our results fail to achieve a desirable tradeoff between capacity and temporal robustness. In fact, we find cropping and rotations attacks in images to be comparable failure modes to the temporal attacks on videos. These failures can be explained by the VAE architectures used in both image and video models. Encoders are designed to compress the sample space into a smaller latent space. The crucial characteristic of these encoders is that they preserve local structure. For example, the 2D autoencoder used in Stable Diffusion preserves the structure of the spatial dimensions via a CNN architecture forming a patch code book \citep{esser2021tamingtransformershighresolutionimage, rombach2021highresolution}. The 3D autoencoder used in Open Sora builds on top of a 2D autoencoder by first compressing the spatial dimensions, and then using a causal temporal 3D CNN, compresses every 4 frames into a single latent \citep{yu2024languagemodelbeatsdiffusion, opensora}. In summary, the model architectures of image and video autoencoders are precisely designed to preserve the structure of their corresponding sample space's spatial and temporal dimensions. This structure preservation causes simple geometric and temporal attacks to destroy the PRC watermark. A rotation of an image or the removal of the first frames in a video completely offset the original latent structure, potentially causing a deletion attack on the watermark code. A deletion attack at the beginning of the code will make the entire code neither detectable nor decodable since it will cause the entire code to shift whereas the code is only robust to substitution \citep{gunn2025undetectable}.
+Our results indicate that cropping and rotations attacks in images are comparable failure modes to temporal attacks on videos. These failures can be explained by the VAE architectures used in both image and video models. Encoders are designed to compress the sample space into a smaller latent space. The crucial characteristic of these encoders is that they preserve local structure. For example, the 2D autoencoder used in Stable Diffusion preserves the structure of the spatial dimensions via a CNN architecture forming a patch code book \citep{esser2021tamingtransformershighresolutionimage, rombach2021highresolution}. The 3D autoencoder used in Open Sora builds on top of a 2D autoencoder by first compressing the spatial dimensions. It then uses a causal temporal 3D CNN to, as mentioned before, compress every 4 frames into a single latent \citep{yu2024languagemodelbeatsdiffusion, opensora}. In summary, the model architectures of image and video autoencoders are precisely designed to preserve the structure of their corresponding sample space's spatial and temporal dimensions. This structure preservation allows simple geometric and temporal attacks to destroy the PRC watermark. A rotation of an image or the removal of the first frames in a video completely offsets the original latent structure, potentially causing a deletion attack on the watermark code. A deletion attack at the beginning of the code will make the entire code neither detectable nor decodable since it will cause the entire code to shift whereas the code is only robust to substitutions \citep{gunn2025undetectable}.
 
 \section{Future Directions}
 
-\textbf{Exploiting the Anchor Frame Effect.} Our discovery that watermark detection under subsampling persists only in the first latent frame suggests that video VAEs prioritize sequence initialization. Future work should analyze the internal workings to determine if this bias can be systematically exploited. Schemes that explicitly target these initialization anchors—or artificially induce them periodically—could significantly enhance robustness against frame rate conversion.
+\textbf{Exploiting the Anchor Frame Effect.} Our discovery that watermark detection under subsampling persists only in the first latent frame suggests that video VAEs prioritize sequence initialization. Future work should analyze the internal workings to determine if this bias can be systematically exploited.
 
-\textbf{Generalization to Emerging Architectures.} The synchronization challenges identified in Open Sora 1.3 likely extend to any latent video model with temporal compression. It would be interesting to evaluate state-of-the-art architectures like Wan2.1, generalizing to new architecture changes induced in more recent works.
+\textbf{Generalization to Emerging Architectures.} The synchronization challenges identified in Open Sora 1.3 likely extend to any latent video model with temporal compression. It would be interesting to evaluate state-of-the-art architectures like Wan2.1 \citep{wan2025wanopenadvancedlargescale}, evaluating how the causal nature of sample latents effect the ability to embed watermarks across frames.
 
-\textbf{Expanding Capacity via Temporal Modulation.} While "Temporal Broadcasting" maximizes robustness through redundancy, it limits capacity. We hypothesize that the temporal dimension offers unexploited bandwidth that could support significantly higher capacity without paying the tradeoffs found in the naive extension. Future research should investigate embedding schemes that decouple capacity from pure redundancy, aiming to improve information density while maintaining resilience against temporal attacks.
+\textbf{Expanding Capacity via Temporal Modulation.} While "Temporal Broadcasting" maximizes robustness through redundancy, it limits capacity. It woud
 
 \section{Conclusion}
 As generative video models increasingly improve, ensuring the provenance of synthetic media becomes a critical defense against misinformation. In this work, we extended the PRC watermark to the video domain, exposing a fundamental vulnerability in naive implementations: the synchronization mismatch between pixel-domain attacks and latent-domain compression. By introducing the Modulo-4 Alignment Strategy, we bridged this gap, achieving a watermark robust to severe temporal clipping and stochastic frame dropping.
+\newpage
 
 \bibliographystyle{plainnat}  
 \bibliography{references}
