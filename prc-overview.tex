@@ -5,7 +5,7 @@
 %%% ESHA %%%
 \section{PRC Watermarking} 
 
-One of the most important properties of watermarks in the real world is \textbf{imperceptibility}, or the idea that a watermark should be subtle, not detectable by humans. This also includes not degrading the quality of the output. Since a large amount of money and energy is put into fine tuning these models, ensuring quality preservation is essential if watermarks are to be adopted in practice. Imperceptibility has often been calculated empirically via scores like CLIP or FID. 
+One of the most important properties of watermarks in the real world is \textbf{imperceptibility}, or the idea that a watermark should be subtle and not detectable by humans. This also includes not degrading the quality of the output. Since a large amount of money and energy is put into fine tuning these models, ensuring quality preservation is essential if watermarks are to be adopted in practice. Imperceptibility has often been calculated empirically via scores like CLIP or FID. 
 
 
 However,~\citep{CGZ23} proposed a new, formalized definition for a very strong imperceptibility guarantee, which they call \textbf{undetectability}. For any output with a high enough empirical entropy, undetectability states it is infeasible to distinguish between the distributions of $\mathsf{\overline{Model}}$ (A random variable representing the $\mathsf{Model}$ response) and $\mathsf{Wat}_{\mathsf{sk}}$ (The distribution over watermarked outputs, given a secret key $\mathsf{sk}$), even when
@@ -35,12 +35,11 @@ Here, the notation $\mathcal{D}^{\mathcal{O}_1,\mathcal{O}_2}$ means that
 $\mathcal{D}$ is allowed to adaptively query both oracles
 $\mathcal{O}_1$ and $\mathcal{O}_2$ with arbitrary prompts.
 
-Note that Distinguisher is given access to both the actual $\mathsf{Model}$, as well as the distributions of watermarked and un-watermarked outputs. 
+Note that the Distinguisher is given access to both the actual $\mathsf{Model}$, as well as the distributions of watermarked and un-watermarked outputs. 
 
-\subsection{Achieving Undetectability}
+\citep{CG24} proposes a novel approach to watermarking by replacing the randomness used by the generation process in the model with codewords from a pseudorandom error-correcting code (PRC). This means that the randomness used by the model is is replaced by a pseudorandom distribution, which is indistinguishable from random without the secret watermarking key $\mathsf{sk}$. This in turn means that model outputs have an undetectable watermark, providing an extremely strong quality guarantee and ensuring that no adversary can learn the watermark. 
 
-\citep{CG24} proposes a novel approach to watermarking by replacing the randomness used by the generation process in the model with codewords from a pseudorandom error-correcting code (PRC). This means that the randomness used by the model (and hence the model response) is modified in a way that is undetectable without the secret watermarking key $\mathsf{sk}$. In the next section, we discuss the definition and properties of a PRC and provide an overview of the construction in \citep{CG24}.
-
+In the next section, we discuss the definition and properties of a PRC and provide an overview of the construction in \citep{CG24}.
 
 \subsection{PRC Details}
 A \emph{pseudorandom code} (PRC) \citep{CG24} is defined by algorithms
@@ -57,8 +56,8 @@ $\mathsf{Encode}$ and $\mathsf{Decode}$ satisfying two properties:
   $\mathsf{Decode}(x') = m$.
 \end{itemize}
 
-Pseudorandomness and Error-correction are properties that tend to be in direct concflict. Without the secret key, the output must look completely unstructured. With the secret key, the output must look structured enough to allow for robust error-correction. One of the main contributions of \citep{CG24} is bypassing this tradeoff. Here, we focus on the zero-bit case, where the watermark encodes a single bit $\mathsf{b} \in \{0, 1\}$, representing whether the watermark is present or not present in the output. 
-The essential idea is to use a Low Density Parity Check (LDPC) code for error correction, and pair it with a parity based assumption from cryptography -- Learning Parity with Noise (LPN). LDPC codes were originally introduced by Gallager and shown to be capacity achieving for different symmetric channels. In \citep{CG24}, due to the need for pseudorandomness and undetectibility via the LPN assumption, their parity check matrices employ higher density and thus necessitate different decoding techniques than the typical belief propogation for LDPC codes.
+Pseudorandomness and error-correction are properties that tend to be in direct conflict. Without the secret key, the output must look completely unstructured. With the secret key, the output must look structured enough to allow for robust error-correction. One of the main contributions of \citep{CG24} is bypassing this tradeoff. Here, we focus on the zero-bit case, where the watermark encodes a single bit $\mathsf{b} \in \{0, 1\}$, representing whether the watermark is present or not present in the output. 
+The essential idea is to use a Low Density Parity Check (LDPC) code for error correction, and pair it with a parity based assumption from cryptography -- Learning Parity with Noise (LPN). LDPC codes were originally introduced by Gallager and shown to be capacity achieving for different symmetric channels. In \citep{CG24}, due to the need for pseudorandomness and undetectability via the LPN assumption, their parity check matrices employ higher density and thus necessitate different decoding techniques than the typical belief propagation for LDPC codes.
 
 The LPN assumption states that noisy samples from the codespace of a random linear code are pseudorandom, even to an adversary who knows a generator matrix for the
 code. In more detail, let $n, g$ be integers and let
@@ -73,7 +72,7 @@ $u \leftarrow \mathbb{F}_2^n$.
 However, under the LPN, the output is indistinguishable even given $G$, i.e. there is nothing we can use as a secret key to distinguish the two outputs. We need something that can \textit{detect} when a codeword is not randomly generated. For this, we turn to LDPC codes. That is, instead of sampling $G$ uniformly at random, we first sample a
 \emph{parity-check matrix} $P \in \mathbb{F}_2^{r \times n}$ subject to each row being $t$-sparse, where $r$ is the number of parity checks. Then we sample $G \in \mathbb{F}_2^{n \times g}$ subject to $PG = 0$. 
 
-For appropriate choices of $n, g, t, r$, it can be shown that the resulting marginal distribution on $G$ is random or pseudorandom \citep{CG24}. The pseudorandomess of $G$ will allow us to apply the LPN assumption, so that the outputs look indistinguishable from random to any adversary. The parity check matrix $P$ will allow us to efficiently detect near-codewords.
+For appropriate choices of $n, g, t, r$, it can be shown that the resulting marginal distribution on $G$ is random or pseudorandom \citep{CG24}. The pseudorandomness of $G$ will allow us to apply the LPN assumption, so that the outputs look indistinguishable from random to any adversary. The parity check matrix $P$ will allow us to efficiently detect near-codewords.
 
 \begin{enumerate}
     \item Sample a random matrix $P\in\mathbb{F}_2^{r\times n}$ subject to every row of $P$ being $t$-sparse.
@@ -94,7 +93,7 @@ The corresponding encoding function is
 
 % $d(Px,0)\approx r/2$. However, given the message $y\in \mathbb{F}_2^g$, we encode via $x=Gy \in\text{Null}(P)$. Then even if $x$ undergoes some limited amount of corruptions,
 
-Zero-bit decoding works by counting the number of satisfied parity checks, and checking if they are over some threshold. We expect that for $u \leftarrow {F}_2^n$, then $d(Pu,0) \approx r/2$. For a message $s$ encoded as $x=Gs \oplus e$, even after corruptions we should expect it will have small Hamming distance from $\text{Range}(G)$ so that $d(Px,0)<r/2$ (the noise $e$ is usually set to be small).
+Zero-bit decoding works by counting the number of satisfied parity checks, and checking if they are over some threshold. We expect that for $u \leftarrow {F}_2^n$, we will have $d(Pu,0) \approx r/2$. For a message $s$ encoded as $x=Gs \oplus e$, even after corruptions we should expect it will have small Hamming distance from $\text{Range}(G)$ so that $d(Px,0)<r/2$ (the noise $e$ is usually set to be small).
 
 The corresponding decoding function which bounds the number of unsatisifed parity checks is derived in \citep{CG24} as:
 
@@ -103,13 +102,13 @@ The corresponding decoding function which bounds the number of unsatisifed parit
 \end{align*}
 The paper determines that with constant noise rate, the sparsity of the parity check matrix must be $t=O(\log r)$ to ensure decoding succeeds with high probability (i.e bound the number of satisfied parity checks to be close to $r$). Furthermore, $r=n^{\Omega(1)}$ so $t=O(\log n)$.
 
-While LDPC codes typically utilize very small constant sparsity $t<<n$\citep{borwankar2020lowdensityparitycheck}, however, to ensure the pseudorandomness of $G$, the sparsity is set to $t=\Theta(\log n)$. Unfortunately, a belief propagation decoder does not work for noise rates beyond $O(\log t/t)$ according to \citep{CG24} which is why the simple parity check decoding is used.
+LDPC codes typically utilize very small constant sparsity $t<<n$~\citep{borwankar2020lowdensityparitycheck}. However, to ensure the pseudorandomness of $G$, the sparsity is set to $t=\Theta(\log n)$. Unfortunately, a belief propagation decoder does not work for noise rates beyond $O(\log t/t)$ according to \citep{CG24} which is why the simple parity check decoding is used.
 
-In \citep{gunn2025undetectable}, the decoding function is modified to optimize for images by using a softmax function instead of bit strings, and giving more weight to values with higher magnitude. In addition, they use a constant $t = 3$, which means that the scheme is not practically undetectable against motivated adversaries. However, it is still undetectable in practice, as shown by the undetectibility discussion in the next section. 
+In \citep{gunn2025undetectable}, the decoding function is modified to optimize for images by using a softmax function instead of bit strings, and giving more weight to values with higher magnitude. In addition, they use a constant $t = 3$, which means that the scheme is not practically undetectable against motivated adversaries, given it is too small. However, it is still undetectable in practice, as shown by the undetectability discussion in the next section. Instead, to achieve a reasonably high $t$ that follows the $\Theta(\log n)$ required for cryptographic security, \citep{gunn2025undetectable} discusses that a value around $t=7$ should be used. Still both the PRC paper and our experiments use $t=3$ which is practically sufficient.
 
 Now that we have described the general PRC structure, we explain how it was proposed for injection in the initial Gaussian latent of a generative model. The signs of a Gaussian are randomly distributed in $\{+1,-1\}$ so we can simply replace the signs of the initial latent with the bits in the code. In particular, given a PRC $c\in\{0,1\}^n$ and an initial Gaussian latent $x\sim \mathcal{N}(0,I_n)$, we define the new Gaussian latent as
 \begin{align*}
-    \hat{x}=(2c-1)\odot|x|
+    \hat{x}_i=(-1)^{(c_i)}|x_i|
 \end{align*}
 Importantly, because of the pseudorandomness of $c$, we can assume $\hat{x}\sim \mathcal{N}(0,I_n)$.
 
